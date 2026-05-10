@@ -1,0 +1,9 @@
+<svg width="192" height="192" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
+  <rect width="192" height="192" rx="30" fill="#10b981"/>
+  <path d="M48 72h24v48h-24z" fill="white" opacity="0.9"/>
+  <path d="M78 60h24v72h-24z" fill="white" opacity="0.9"/>
+  <path d="M108 48h24v96h-24z" fill="white" opacity="0.9"/>
+  <path d="M138 36h24v120h-24z" fill="white" opacity="0.9"/>
+  <circle cx="96" cy="150" r="6" fill="white"/>
+  <text x="96" y="170" text-anchor="middle" fill="white" font-family="Arial" font-size="12" font-weight="bold">ESP32</text>
+</svg>

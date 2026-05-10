@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌱 Green House - Démarrage</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#48bb78">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Green House">
+    <meta http-equiv="refresh" content="2;url=./app-pro.html">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #1a202c, #2d3748);
+            color: white;
+            text-align: center;
+        }
+        .loading {
+            background: rgba(255,255,255,0.1);
+            padding: 40px;
+            border-radius: 20px;
+            border: 2px solid #48bb78;
+        }
+        .app-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.2);
+            border-top: 3px solid #48bb78;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .app-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #48bb78;
+        }
+        .loading-text {
+            opacity: 0.8;
+            margin-bottom: 20px;
+        }
+        .manual-link {
+            color: #48bb78;
+            text-decoration: none;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading">
+        <div class="app-icon">🌱</div>
+        <div class="app-name">The Green House</div>
+        <div class="spinner"></div>
+        <div class="loading-text">Chargement de l'application avancée...</div>
+        <a href="./app-pro.html" class="manual-link">
+            👆 Cliquer ici si la redirection ne fonctionne pas
+        </a>
+    </div>
+
+    <script>
+        // Redirection immédiate si JavaScript activé
+        window.location.href = './app-pro.html';
+        
+        // Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(function(registration) {
+                    console.log('Service Worker enregistré');
+                })
+                .catch(function(error) {
+                    console.log('Service Worker: erreur d\'enregistrement', error);
+                });
+        }
+    </script>
+</body>
+</html>

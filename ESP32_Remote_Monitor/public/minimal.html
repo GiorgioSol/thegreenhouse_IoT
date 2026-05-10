@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Test Minimal</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="GreenHouse">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #1a202c, #2d3748);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .container { max-width: 400px; margin: 0 auto; }
+        h1 { color: #48bb78; margin-bottom: 30px; }
+        .card {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+        button {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            width: 100%;
+            margin: 10px 0;
+            box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+            transition: all 0.3s ease;
+        }
+        button:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 10px rgba(72, 187, 120, 0.5);
+        }
+        .info {
+            background: rgba(72, 187, 120, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #48bb78;
+        }
+        .error {
+            background: rgba(245, 101, 101, 0.2);
+            border-left: 4px solid #f56565;
+        }
+        .warning {
+            background: rgba(255, 193, 7, 0.2);
+            border-left: 4px solid #ffc107;
+        }
+        #status { margin: 20px 0; font-size: 18px; }
+        .log {
+            background: rgba(0,0,0,0.5);
+            padding: 15px;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 14px;
+            text-align: left;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌱 Test PWA Minimal</h1>
+        
+        <div id="status" class="info">
+            📱 Initialisation...
+        </div>
+        
+        <div class="card">
+            <h3>🔽 Installation PWA</h3>
+            <button id="installBtn" onclick="installApp()">
+                📲 Installer l'Application
+            </button>
+            <div id="installInfo" class="info">
+                Cliquez pour installer l'app sur votre écran d'accueil
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3>⚡ Test ESP32</h3>
+            <button onclick="testESP32()">
+                🔗 Test Connexion ESP32
+            </button>
+            <div id="esp32Status" class="info">
+                Test de connexion directe à l'ESP32
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3>📊 Journal</h3>
+            <button onclick="clearLog()">🗑️ Vider</button>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        let deferredPrompt;
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        function updateStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = type;
+        }
+        
+        function updateInstallInfo(message, type = 'info') {
+            const info = document.getElementById('installInfo');
+            info.textContent = message;
+            info.className = type;
+        }
+        
+        function updateESP32Status(message, type = 'info') {
+            const status = document.getElementById('esp32Status');
+            status.textContent = message;
+            status.className = type;
+        }
+        
+        // Détection de l'environnement
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                           ('standalone' in window.navigator && window.navigator.standalone);
+        
+        // Installation PWA
+        function installApp() {
+            log('🔘 Tentative d\\'installation PWA');
+            
+            if (isStandalone) {
+                updateInstallInfo('✅ Application déjà installée !', 'info');
+                log('✅ PWA déjà en mode standalone');
+                return;
+            }
+            
+            if (isIOS) {
+                updateInstallInfo('📱 Instructions iOS ci-dessous', 'warning');
+                log('📱 Détection iOS - Instructions manuelles');
+                alert('📱 INSTALLATION iOS:\\n\\n1️⃣ Appuyez sur le bouton PARTAGER 📤 (en bas de Safari)\\n\\n2️⃣ Faites défiler et appuyez sur\\n    \"Ajouter à l\\'écran d\\'accueil\"\\n\\n3️⃣ Appuyez sur \"Ajouter\" pour confirmer\\n\\n✅ L\\'application apparaîtra sur votre écran d\\'accueil comme une vraie app !');
+            } else if (deferredPrompt) {
+                log('🚀 Installation automatique disponible');
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    log(`📊 Choix utilisateur: ${choiceResult.outcome}`);
+                    if (choiceResult.outcome === 'accepted') {
+                        updateInstallInfo('✅ Installation acceptée !', 'info');
+                    } else {
+                        updateInstallInfo('❌ Installation refusée', 'error');
+                    }
+                    deferredPrompt = null;
+                });
+            } else {
+                updateInstallInfo('⚠️ Installation manuelle requise', 'warning');
+                log('📝 Pas d\\'installation automatique disponible');
+                alert('💻 INSTALLATION MANUELLE:\\n\\nMenu du navigateur (⋮) → \"Installer l\\'application\" ou \"Ajouter à l\\'écran d\\'accueil\"');
+            }
+        }
+        
+        // Test ESP32 direct
+        async function testESP32() {
+            log('🔍 Test connexion ESP32...');
+            updateESP32Status('⏳ Test en cours...', 'warning');
+            
+            try {
+                const response = await fetch('http://192.168.178.21/', {
+                    method: 'GET',
+                    timeout: 10000
+                });
+                
+                if (response.ok) {
+                    const text = await response.text();
+                    log('✅ ESP32 accessible !');
+                    updateESP32Status('✅ ESP32 répondant', 'info');
+                    log(`📄 Réponse ESP32: ${text.substring(0, 100)}...`);
+                } else {
+                    log(`❌ ESP32 erreur HTTP: ${response.status}`);
+                    updateESP32Status('❌ Erreur HTTP', 'error');
+                }
+            } catch (error) {
+                log(`❌ Erreur connexion ESP32: ${error.message}`);
+                updateESP32Status('❌ Connexion impossible', 'error');
+            }
+        }
+        
+        // Événements PWA
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            updateInstallInfo('🔽 Installation automatique disponible !', 'info');
+            log('🎯 Installation PWA automatique disponible');
+        });
+        
+        window.addEventListener('appinstalled', () => {
+            log('🎉 PWA installée avec succès !');
+            updateInstallInfo('🎉 Installation réussie !', 'info');
+            updateStatus('🎉 Application installée !', 'info');
+        });
+        
+        // Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(registration => {
+                    log('✅ Service Worker enregistré');
+                    console.log('SW registered:', registration);
+                })
+                .catch(error => {
+                    log(`❌ Erreur Service Worker: ${error.message}`);
+                    console.error('SW registration failed:', error);
+                });
+        } else {
+            log('❌ Service Worker non supporté');
+        }
+        
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', () => {
+            log('🚀 PWA Minimal initialisé');
+            
+            if (isIOS) {
+                log('📱 Environnement: iOS');
+                updateStatus('📱 Détection iOS', 'info');
+            } else {
+                log('💻 Environnement: Desktop/Android');
+                updateStatus('💻 Navigateur standard', 'info');
+            }
+            
+            if (isStandalone) {
+                log('✅ Mode standalone actif');
+                updateStatus('✅ Mode application native', 'info');
+                updateInstallInfo('✅ Lancé depuis l\\'écran d\\'accueil', 'info');
+            } else {
+                log('🌐 Mode navigateur');
+                updateStatus('🌐 Mode navigateur web', 'warning');
+            }
+            
+            // Test des capacités du navigateur
+            log(`📱 User Agent: ${navigator.userAgent}`);
+            log(`🌐 URL: ${window.location.href}`);
+            log(`📺 Display: ${window.matchMedia('(display-mode: standalone)').matches ? 'standalone' : 'browser'}`);
+        });
+    </script>
+</body>
+</html>

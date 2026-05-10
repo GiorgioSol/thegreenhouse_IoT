@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Green House</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#48bb78">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="The Green House">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #1a202c, #2d3748);
+            color: white;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        .header {
+            background: rgba(0,0,0,0.3);
+            padding: 8px 15px;
+            border-bottom: 2px solid #48bb78;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .header h1 { 
+            color: #48bb78; 
+            font-size: 18px;
+            font-weight: 700;
+            margin: 0;
+        }
+        .header-time {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            font-size: 12px;
+        }
+        .current-time {
+            color: #48bb78;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .mqtt-status {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .header-bottom {
+            display: flex;
+            justify-content: center;
+        }
+        .nav-tabs {
+            display: flex;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 2px;
+        }
+        .tab-button {
+            padding: 6px 12px;
+            border: none;
+            background: transparent;
+            color: white;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .tab-button.active {
+            background: #48bb78;
+            color: white;
+        }
+        .status-bar {
+            display: none; /* Intégré dans header-time */
+        }
+        .mqtt-status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-weight: bold;
+        }
+        .mqtt-connected { background: #48bb78; }
+        .mqtt-disconnected { background: #e53e3e; }
+        .mqtt-connecting { background: #ffd700; color: black; }
+        
+        .container {
+            padding: 10px;
+            max-height: calc(100vh - 80px); /* Hauteur disponible moins header */
+            overflow-y: auto;
+        }
+        
+        /* ONGLET RELAIS - Optimisé iPhone 13 mini */
+        .relays-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        .relay-card {
+            background: rgba(255,255,255,0.1);
+            padding: 12px;
+            border-radius: 10px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .relay-card.on {
+            border-color: #48bb78;
+            background: rgba(72, 187, 120, 0.2);
+        }
+        .relay-card.off {
+            border-color: #666;
+        }
+        .relay-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .relay-name {
+            font-size: 13px;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+        .relay-status {
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 9px;
+            font-weight: bold;
+        }
+        .relay-status.on { background: #48bb78; }
+        .relay-status.off { background: #666; }
+        .toggle-button {
+            width: 100%;
+            padding: 8px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .toggle-button.on { background: #48bb78; color: white; }
+        .toggle-button.off { background: #666; color: white; }
+        
+        /* ONGLET COMPTEUR - Optimisé iPhone 13 mini */
+        .meter-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .meter-card {
+            background: rgba(255,255,255,0.1);
+            padding: 12px;
+            border-radius: 10px;
+            border: 2px solid #48bb78;
+        }
+        .meter-card h3 {
+            color: #48bb78;
+            margin-bottom: 8px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .meter-value {
+            display: flex;
+            justify-content: space-between;
+            margin: 4px 0;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .meter-value:last-child {
+            border-bottom: none;
+        }
+        .meter-label {
+            color: #ccc;
+            font-size: 11px;
+        }
+        .meter-data {
+            font-weight: bold;
+            color: #48bb78;
+            font-size: 11px;
+        }
+        .power-total {
+            font-size: 18px;
+            text-align: center;
+            color: #48bb78;
+            font-weight: bold;
+            margin: 10px 0;
+            padding: 8px;
+            background: rgba(72, 187, 120, 0.2);
+            border-radius: 8px;
+        }
+        
+        /* ONGLET HORAIRES - Optimisé iPhone 13 mini */
+        .schedule-card {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #48bb78;
+            margin-bottom: 10px;
+        }
+        .schedule-card h3 {
+            color: #48bb78;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        .time-input-group {
+            display: flex;
+            gap: 8px;
+            margin: 8px 0;
+            align-items: center;
+        }
+        .time-input-group label {
+            min-width: 70px;
+            font-weight: 600;
+            font-size: 12px;
+        }
+        .time-input {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid #666;
+            border-radius: 6px;
+            padding: 6px;
+            color: white;
+            font-size: 14px;
+            flex: 1;
+        }
+        .schedule-button {
+            background: #48bb78;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 4px 2px;
+            font-size: 12px;
+        }
+        .schedule-status {
+            background: rgba(72, 187, 120, 0.2);
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 8px;
+            font-size: 11px;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        
+        .install-prompt {
+            background: rgba(72, 187, 120, 0.2);
+            border: 2px solid #48bb78;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        .install-prompt h3 {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+        }
+        .install-prompt p {
+            margin: 4px 0 8px 0;
+            font-size: 12px;
+        }
+        .install-button {
+            background: #48bb78;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-top">
+            <h1>🌱 The Green House</h1>
+            <div class="header-time">
+                <div class="current-time" id="currentTime">--:--</div>
+                <div class="mqtt-status mqtt-connecting" id="mqttStatus">Connexion...</div>
+            </div>
+        </div>
+        <div class="header-bottom">
+            <div class="nav-tabs">
+                <button class="tab-button active" onclick="showTab('relays')">Relais</button>
+                <button class="tab-button" onclick="showTab('meter')">Compteur</button>
+                <button class="tab-button" onclick="showTab('schedule')">Horaires</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- ONGLET RELAIS -->
+        <div id="relays-tab" class="tab-content active">
+            <div class="relays-grid" id="relaysGrid">
+                <!-- Relais générés dynamiquement -->
+            </div>
+        </div>
+
+        <!-- ONGLET COMPTEUR -->
+        <div id="meter-tab" class="tab-content">
+            <div class="power-total" id="powerTotal">-- W</div>
+            
+            <div class="meter-grid">
+                <div class="meter-card">
+                    <h3>⚡ Tensions (L-N)</h3>
+                    <div class="meter-value">
+                        <span class="meter-label">Phase L1</span>
+                        <span class="meter-data" id="voltage1">-- V</span>
+                    </div>
+                    <div class="meter-value">
+                        <span class="meter-label">Phase L2</span>
+                        <span class="meter-data" id="voltage2">-- V</span>
+                    </div>
+                    <div class="meter-value">
+                        <span class="meter-label">Phase L3</span>
+                        <span class="meter-data" id="voltage3">-- V</span>
+                    </div>
+                </div>
+
+                <div class="meter-card">
+                    <h3>🔌 Courants</h3>
+                    <div class="meter-value">
+                        <span class="meter-label">Phase L1</span>
+                        <span class="meter-data" id="current1">-- A</span>
+                    </div>
+                    <div class="meter-value">
+                        <span class="meter-label">Phase L2</span>
+                        <span class="meter-data" id="current2">-- A</span>
+                    </div>
+                    <div class="meter-value">
+                        <span class="meter-label">Phase L3</span>
+                        <span class="meter-data" id="current3">-- A</span>
+                    </div>
+                </div>
+
+                <div class="meter-card">
+                    <h3>⚡ Puissances</h3>
+                    <div class="meter-value">
+                        <span class="meter-label">Phase L1</span>
+                        <span class="meter-data" id="power1">-- W</span>
+                    </div>
+                    <div class="meter-value">
+                        <span class="meter-label">Phase L2</span>
+                        <span class="meter-data" id="power2">-- W</span>
+                    </div>
+                    <div class="meter-value">
+                        <span class="meter-label">Phase L3</span>
+                        <span class="meter-data" id="power3">-- W</span>
+                    </div>
+                </div>
+
+                <div class="meter-card">
+                    <h3>📊 Système</h3>
+                    <div class="meter-value">
+                        <span class="meter-label">Fréquence</span>
+                        <span class="meter-data" id="frequency">-- Hz</span>
+                    </div>
+                    <div class="meter-value">
+                        <span class="meter-label">Facteur puissance</span>
+                        <span class="meter-data" id="powerFactor">--</span>
+                    </div>
+                    <div class="meter-value">
+                        <span class="meter-label">Énergie totale</span>
+                        <span class="meter-data" id="energy">-- kWh</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ONGLET HORAIRES -->
+        <div id="schedule-tab" class="tab-content">
+            <div class="schedule-card">
+                <h3>⏰ Configuration Horaires Automatiques</h3>
+                
+                <div class="time-input-group">
+                    <label>Début :</label>
+                    <input type="time" id="startTime" class="time-input" value="22:00">
+                </div>
+                
+                <div class="time-input-group">
+                    <label>Fin :</label>
+                    <input type="time" id="endTime" class="time-input" value="10:00">
+                </div>
+                
+                <button class="schedule-button" onclick="saveSchedule()">
+                    💾 Sauvegarder
+                </button>
+                
+                <button class="schedule-button" onclick="toggleManualMode()">
+                    🔧 Mode Manuel
+                </button>
+                
+                <div class="schedule-status" id="scheduleStatus">
+                    <strong>État :</strong> Chargement...
+                </div>
+            </div>
+        </div>
+
+        <!-- Prompt d'installation PWA -->
+        <div class="install-prompt" id="installPrompt" style="display: none;">
+            <h3>📱 Installer l'application</h3>
+            <p>Ajoutez The Green House à votre écran d'accueil</p>
+            <button class="install-button" onclick="installPWA()">
+                📲 INSTALLER
+            </button>
+        </div>
+    </div>
+
+    <!-- Inclusion MQTT.js depuis CDN -->
+    <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
+    
+    <script>
+        // Variables globales
+        let mqttClient = null;
+        let relayStates = [false, false, false, false, false, false];
+        let deferredPrompt;
+        let currentTab = 'relays';
+        let meterData = {};
+        let scheduleConfig = {
+            startTime: '22:00',
+            endTime: '10:00',
+            manualMode: false
+        };
+        
+        // Noms et icônes des relais
+        const relayNames = ["💡 Lampe 1", "⚡ Relais 2", "💡 Lampe 2", "⚡ Relais 4", "🌡️ Climat", "⚡ Relais 6"];
+        
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            initInterface();
+            connectMQTT();
+            setupPWA();
+            setInterval(updateTime, 1000);
+        });
+        
+        // Interface
+        function initInterface() {
+            createRelayCards();
+            loadScheduleConfig();
+        }
+        
+        // Créer les cartes des relais
+        function createRelayCards() {
+            const grid = document.getElementById('relaysGrid');
+            grid.innerHTML = '';
+            
+            for (let i = 0; i < 6; i++) {
+                const card = document.createElement('div');
+                card.className = 'relay-card off';
+                card.id = 'relay' + i;
+                
+                card.innerHTML = `
+                    <div class="relay-header">
+                        <span class="relay-name">${relayNames[i]}</span>
+                        <span class="relay-status off">ÉTEINT</span>
+                    </div>
+                    <button class="toggle-button off" onclick="toggleRelay(${i})">
+                        ALLUMER
+                    </button>
+                `;
+                
+                grid.appendChild(card);
+            }
+        }
+        
+        // Gestion des onglets
+        function showTab(tabName) {
+            // Masquer tous les onglets
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Afficher l'onglet sélectionné
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+            currentTab = tabName;
+            
+            // Demander les données spécifiques
+            if (tabName === 'meter' && mqttClient && mqttClient.connected) {
+                mqttClient.publish('esp32/meter/request', 'read');
+            }
+        }
+        
+        // Connexion MQTT
+        function connectMQTT() {
+            try {
+                updateMqttStatus('connecting', '🔄 Connexion...');
+                
+                const options = {
+                    port: 8884,
+                    protocol: 'wss',
+                    keepalive: 60,
+                    reconnectPeriod: 1000,
+                    connectTimeout: 30000
+                };
+                
+                mqttClient = mqtt.connect('wss://broker.hivemq.com:8884/mqtt', options);
+                
+                mqttClient.on('connect', function() {
+                    console.log('MQTT connecté');
+                    updateMqttStatus('connected', '✅ Connecté');
+                    
+                    // S'abonner aux topics
+                    mqttClient.subscribe('esp32/relay/status');
+                    mqttClient.subscribe('esp32/meter/data');
+                    mqttClient.subscribe('esp32/relay/schedule');
+                    
+                    // Demander l'état initial
+                    mqttClient.publish('esp32/relay/request', 'status');
+                    mqttClient.publish('esp32/meter/request', 'read');
+                });
+                
+                mqttClient.on('message', function(topic, message) {
+                    try {
+                        const data = JSON.parse(message.toString());
+                        
+                        if (topic === 'esp32/relay/status') {
+                            updateRelayStatesFromESP32(data);
+                        } else if (topic === 'esp32/meter/data') {
+                            updateMeterData(data);
+                        } else if (topic === 'esp32/relay/schedule') {
+                            updateScheduleStatus(data);
+                        }
+                        
+                        updateLastUpdate();
+                    } catch (e) {
+                        console.error('Erreur parsing message:', e);
+                    }
+                });
+                
+                mqttClient.on('error', function(error) {
+                    console.error('Erreur MQTT:', error);
+                    updateMqttStatus('disconnected', '❌ Erreur');
+                });
+                
+                mqttClient.on('close', function() {
+                    console.log('MQTT déconnecté');
+                    updateMqttStatus('disconnected', '❌ Déconnecté');
+                });
+                
+            } catch (error) {
+                console.error('Erreur connexion MQTT:', error);
+                updateMqttStatus('disconnected', '❌ Erreur');
+            }
+        }
+        
+        // Mettre à jour le statut MQTT
+        function updateMqttStatus(status, text) {
+            const statusElement = document.getElementById('mqttStatus');
+            statusElement.className = 'mqtt-status mqtt-' + status;
+            statusElement.textContent = text;
+        }
+        
+        // Mettre à jour l'heure
+        function updateTime() {
+            const now = new Date();
+            const timeStr = now.getHours().toString().padStart(2, '0') + ':' + 
+                           now.getMinutes().toString().padStart(2, '0');
+            document.getElementById('currentTime').textContent = timeStr;
+        }
+        
+        function updateLastUpdate() {
+            // Cette fonction n'est plus nécessaire, l'heure est mise à jour en temps réel
+            updateTime();
+        }
+        
+        // Contrôler un relais
+        function toggleRelay(channel) {
+            if (!mqttClient || !mqttClient.connected) {
+                alert('❌ Pas de connexion MQTT');
+                return;
+            }
+            
+            const newState = relayStates[channel] ? 0 : 2;
+            const command = {
+                channel: channel,
+                state: newState
+            };
+            
+            console.log('Envoi commande:', command);
+            mqttClient.publish('esp32/relay/command', JSON.stringify(command));
+            
+            // Mise à jour immédiate de l'interface
+            relayStates[channel] = (newState === 2);
+            updateRelayUI(channel);
+        }
+        
+        // Mettre à jour l'interface d'un relais
+        function updateRelayUI(channel) {
+            const relayCard = document.getElementById('relay' + channel);
+            const button = relayCard.querySelector('.toggle-button');
+            const statusSpan = relayCard.querySelector('.relay-status');
+            const isOn = relayStates[channel];
+            
+            if (isOn) {
+                relayCard.className = 'relay-card on';
+                button.className = 'toggle-button on';
+                button.textContent = 'ÉTEINDRE';
+                statusSpan.className = 'relay-status on';
+                statusSpan.textContent = 'ALLUMÉ';
+            } else {
+                relayCard.className = 'relay-card off';
+                button.className = 'toggle-button off';
+                button.textContent = 'ALLUMER';
+                statusSpan.className = 'relay-status off';
+                statusSpan.textContent = 'ÉTEINT';
+            }
+        }
+        
+        // Mettre à jour les états depuis l'ESP32
+        function updateRelayStatesFromESP32(data) {
+            if (data.channels && Array.isArray(data.channels)) {
+                for (let i = 0; i < data.channels.length && i < 6; i++) {
+                    if (data.channels[i] && typeof data.channels[i].active === 'boolean') {
+                        relayStates[i] = data.channels[i].active;
+                        updateRelayUI(i);
+                    }
+                }
+            }
+        }
+        
+        // Mettre à jour les données du compteur
+        function updateMeterData(data) {
+            meterData = data;
+            
+            // Tensions (format ESP32: voltages_LN.v1, v2, v3)
+            if (data.voltages_LN) {
+                document.getElementById('voltage1').textContent = (parseFloat(data.voltages_LN.v1) || 0).toFixed(1) + ' V';
+                document.getElementById('voltage2').textContent = (parseFloat(data.voltages_LN.v2) || 0).toFixed(1) + ' V';
+                document.getElementById('voltage3').textContent = (parseFloat(data.voltages_LN.v3) || 0).toFixed(1) + ' V';
+            }
+            
+            // Courants (format ESP32: currents.i1, i2, i3)
+            if (data.currents) {
+                document.getElementById('current1').textContent = (parseFloat(data.currents.i1) || 0).toFixed(2) + ' A';
+                document.getElementById('current2').textContent = (parseFloat(data.currents.i2) || 0).toFixed(2) + ' A';
+                document.getElementById('current3').textContent = (parseFloat(data.currents.i3) || 0).toFixed(2) + ' A';
+            }
+            
+            // Puissances (format ESP32: powers.p1_W, p2_W, p3_W, pTotal_W)
+            if (data.powers) {
+                document.getElementById('power1').textContent = (parseFloat(data.powers.p1_W) || 0).toFixed(0) + ' W';
+                document.getElementById('power2').textContent = (parseFloat(data.powers.p2_W) || 0).toFixed(0) + ' W';
+                document.getElementById('power3').textContent = (parseFloat(data.powers.p3_W) || 0).toFixed(0) + ' W';
+                document.getElementById('powerTotal').textContent = (parseFloat(data.powers.pTotal_W) || 0).toFixed(0) + ' W';
+            }
+            
+            // Système (format ESP32: frequency_Hz, power_factors.pfTotal, energy_import_kWh)
+            document.getElementById('frequency').textContent = (parseFloat(data.frequency_Hz) || 0).toFixed(2) + ' Hz';
+            
+            if (data.power_factors) {
+                document.getElementById('powerFactor').textContent = (parseFloat(data.power_factors.pfTotal) || 0).toFixed(3);
+            }
+            
+            document.getElementById('energy').textContent = (parseFloat(data.energy_import_kWh) || 0).toFixed(2) + ' kWh';
+        }
+        
+        // Gestion des horaires
+        function saveSchedule() {
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+            
+            // Convertir le format HH:MM en heures et minutes
+            const [startHour, startMinute] = startTime.split(':').map(Number);
+            const [endHour, endMinute] = endTime.split(':').map(Number);
+            
+            const scheduleData = {
+                start_hour: startHour,
+                start_minute: startMinute,
+                end_hour: endHour,
+                end_minute: endMinute
+            };
+            
+            if (mqttClient && mqttClient.connected) {
+                mqttClient.publish('esp32/relay/schedule', JSON.stringify(scheduleData));
+                alert('✅ Horaires sauvegardés !');
+                
+                // Mettre à jour l'affichage local
+                scheduleConfig.startTime = startTime;
+                scheduleConfig.endTime = endTime;
+                updateScheduleStatusDisplay();
+            } else {
+                alert('❌ Pas de connexion MQTT');
+            }
+        }
+        
+        function toggleManualMode() {
+            // Pour l'instant, le mode manuel n'est pas implémenté dans l'ESP32
+            // Cette fonction pourrait être ajoutée plus tard
+            alert('⚠️ Mode manuel pas encore implémenté dans le firmware ESP32');
+        }
+        
+        function loadScheduleConfig() {
+            document.getElementById('startTime').value = scheduleConfig.startTime;
+            document.getElementById('endTime').value = scheduleConfig.endTime;
+        }
+        
+        function updateScheduleStatus(data) {
+            // L'ESP32 ne publie pas encore de statut d'horaires séparé
+            // Les horaires sont inclus dans le statut général des relais
+            console.log('Données horaires reçues:', data);
+        }
+        
+        function updateScheduleStatusDisplay() {
+            const status = document.getElementById('scheduleStatus');
+            const now = new Date();
+            const currentTime = now.getHours().toString().padStart(2, '0') + ':' + 
+                               now.getMinutes().toString().padStart(2, '0');
+            
+            let statusText = `<strong>État:</strong> ${scheduleConfig.manualMode ? 'Manuel' : 'Auto'}<br>`;
+            statusText += `<strong>Période active:</strong> ${scheduleConfig.startTime} - ${scheduleConfig.endTime}<br>`;
+            statusText += `<strong>Relais auto:</strong> Lampe 1, Lampe 2`;
+            
+            status.innerHTML = statusText;
+        }
+        
+        // Configuration PWA
+        function setupPWA() {
+            window.addEventListener('beforeinstallprompt', function(e) {
+                e.preventDefault();
+                deferredPrompt = e;
+                document.getElementById('installPrompt').style.display = 'block';
+            });
+            
+            if (window.matchMedia('(display-mode: standalone)').matches) {
+                console.log('PWA déjà installée');
+            }
+        }
+        
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(function(choiceResult) {
+                    if (choiceResult.outcome === 'accepted') {
+                        document.getElementById('installPrompt').style.display = 'none';
+                    }
+                    deferredPrompt = null;
+                });
+            } else {
+                alert('📱 Pour installer sur iOS:\n\n1. Appuyez sur Partager 📤\n2. "Ajouter à l\'écran d\'accueil"\n3. Appuyez sur "Ajouter"');
+            }
+        }
+        
+        // Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(function(registration) {
+                    console.log('Service Worker enregistré');
+                })
+                .catch(function(error) {
+                    console.log('Erreur Service Worker:', error);
+                });
+        }
+    </script>
+</body>
+</html>

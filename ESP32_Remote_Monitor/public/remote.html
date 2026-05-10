@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌱 Green House - Contrôle à Distance</title>
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkdyb3cgUm9vbSBDb250cm9sIiwKICAic2hvcnRfbmFtZSI6ICJHcm93Um9vbSIsCiAgInN0YXJ0X3VybCI6ICIvIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjMTBiOTgxIiwKICAidGhlbWVfY29sb3IiOiAiIzEwYjk4MSIsCiAgImljb25zIjogWwogICAgewogICAgICAic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjNhV1IwYUQwaU1qQXdJaUJvWldsbmFIUTlJakl3TUNJZ2RtbGxkMEp2ZUQwaU1DQXdJakl3TUNBME16SWlJR1pwYkd3OUlqRXdZams0TVNJK1BIQmhkR2dnWkQwaVRUSXdNU0F5TkRFdU5YWXpNVEIySW1acGJHdzlJakV3WWprNE1TSStQSEJoZEdnZ1pEMGlUVEV3TkNBeU56RXVORFl6TFRFeExqWTJNUzR4WVMxdGVURXVOamhzTFNONk1UWnNMVFFqWVRNeE5EY3VNall0TVRBNU5UZzJMakV6TFRRNGEyVnViMEp2TXcwS0lqRXdPVGMyVnlCTVBqTkZOVGQ0TnlKaElHTnRaMEpxUWkxMGJEUnVNa1ZrU1RBeWRUTnZPRUZvTUNaUVNXZE9MU1l1VURjeVNIQlZMVFU0VTNkekppNXJkQ1lrT1hsdGVVeHNVMUU5UFNJdlBqeDJaV04wYjNKZ1pEMGlUVFEyTWpBeU5EWXlNems2UlRZNU5rNUJiWG95YVhJd0xqbHZieVZISG1RaWRDTmZkRU5QV3lrcGJ6NXpaUzF1Wm1rc1NVcGhjR2hoTVVFdlMwdFJVeUZEU1ROY0xrRnpNWFE1WDNkT2VFRjFWQzR1Vmo1c0pYWnNVU0k4TDNabFkzUnZjajQrUEM5emRtYysiLAogICAgICAic2l6ZXMiOiAiMTkyeDE5MiIsCiAgICAgICJ0eXBlIjogImltYWdlL3N2Zyt4bWwiCiAgICB9CiAgXQp9">
+    <meta name="theme-color" content="#10b981">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 15px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff9800;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-dot.connected {
+            background: #4caf50;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .connection-info {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+        
+        .relay-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .relay-card {
+            background: white;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .relay-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        
+        .relay-name {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .relay-status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .status-on {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        
+        .status-off {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .relay-toggle {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .relay-on {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .relay-off {
+            background: #f44336;
+            color: white;
+        }
+        
+        .location-info {
+            background: white;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .relay-grid {
+                grid-template-columns: 1fr;
+            }
+            .container {
+                padding: 0 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌱 Green House Control</h1>
+            <div class="status">
+                <div id="mqtt-dot" class="status-dot"></div>
+                <span id="connection-status">Connexion MQTT...</span>
+                <span id="current-time">--:--:--</span>
+            </div>
+        </div>
+        
+        <div class="connection-info">
+            📍 <strong>Mode à distance activé</strong> - Contrôle via MQTT depuis n'importe où<br>
+            🌐 <span id="location-info">Détection de la position...</span>
+        </div>
+        
+        <div class="relay-grid">
+            <div class="relay-card">
+                <div class="relay-header">
+                    <div class="relay-name">💡 Éclairage</div>
+                    <div id="status-1" class="relay-status status-off">OFF</div>
+                </div>
+                <button id="relay-1" class="relay-toggle relay-off" onclick="toggleRelay(1)">
+                    ÉTEINT
+                </button>
+            </div>
+            
+            <div class="relay-card">
+                <div class="relay-header">
+                    <div class="relay-name">🌪️ Ventilation</div>
+                    <div id="status-2" class="relay-status status-off">OFF</div>
+                </div>
+                <button id="relay-2" class="relay-toggle relay-off" onclick="toggleRelay(2)">
+                    ÉTEINT
+                </button>
+            </div>
+            
+            <div class="relay-card">
+                <div class="relay-header">
+                    <div class="relay-name">💧 Pompe à Eau</div>
+                    <div id="status-3" class="relay-status status-off">OFF</div>
+                </div>
+                <button id="relay-3" class="relay-toggle relay-off" onclick="toggleRelay(3)">
+                    ÉTEINT
+                </button>
+            </div>
+            
+            <div class="relay-card">
+                <div class="relay-header">
+                    <div class="relay-name">🌡️ Chauffage</div>
+                    <div id="status-4" class="relay-status status-off">OFF</div>
+                </div>
+                <button id="relay-4" class="relay-toggle relay-off" onclick="toggleRelay(4)">
+                    ÉTEINT
+                </button>
+            </div>
+            
+            <div class="relay-card">
+                <div class="relay-header">
+                    <div class="relay-name">🌬️ Climatisation</div>
+                    <div id="status-5" class="relay-status status-off">OFF</div>
+                </div>
+                <button id="relay-5" class="relay-toggle relay-off" onclick="toggleRelay(5)">
+                    ÉTEINT
+                </button>
+            </div>
+            
+            <div class="relay-card">
+                <div class="relay-header">
+                    <div class="relay-name">⚡ Auxiliaire</div>
+                    <div id="status-6" class="relay-status status-off">OFF</div>
+                </div>
+                <button id="relay-6" class="relay-toggle relay-off" onclick="toggleRelay(6)">
+                    ÉTEINT
+                </button>
+            </div>
+        </div>
+        
+        <div class="location-info">
+            <h3>📡 Informations de connexion</h3>
+            <div id="connection-details">
+                <p><strong>État MQTT :</strong> <span id="mqtt-status">Connexion...</span></p>
+                <p><strong>Broker :</strong> broker.hivemq.com:8884 (WebSocket)</p>
+                <p><strong>Topics :</strong> esp32/relay/*, esp32/status</p>
+                <p><strong>Localisation :</strong> <span id="user-location">Détection...</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/mqtt@5.0.0/dist/mqtt.min.js"></script>
+    <script>
+        let mqttClient = null;
+        let relayStates = {1: false, 2: false, 3: false, 4: false, 5: false, 6: false};
+        
+        // Connexion MQTT via WebSocket (accessible depuis internet)
+        function connectMQTT() {
+            console.log('🔄 Connexion MQTT...');
+            
+            const options = {
+                hostname: 'broker.hivemq.com',
+                port: 8884,
+                protocol: 'wss',
+                clean: true,
+                connectTimeout: 4000,
+                reconnectPeriod: 1000,
+            };
+            
+            try {
+                mqttClient = mqtt.connect('wss://broker.hivemq.com:8884/mqtt', options);
+                
+                mqttClient.on('connect', () => {
+                    console.log('✅ MQTT connecté !');
+                    updateConnectionStatus(true, 'Connecté à distance via MQTT');
+                    
+                    // S'abonner aux topics ESP32
+                    mqttClient.subscribe('esp32/status', (err) => {
+                        if (!err) console.log('✅ Abonné au status ESP32');
+                    });
+                    
+                    mqttClient.subscribe('esp32/relay/+/status', (err) => {
+                        if (!err) console.log('✅ Abonné aux relais ESP32');
+                    });
+                    
+                    // Demander le statut initial
+                    mqttClient.publish('esp32/command', JSON.stringify({action: 'get_status'}));
+                });
+                
+                mqttClient.on('message', (topic, message) => {
+                    try {
+                        const data = JSON.parse(message.toString());
+                        handleMQTTMessage(topic, data);
+                    } catch (error) {
+                        console.log('Message MQTT:', topic, message.toString());
+                    }
+                });
+                
+                mqttClient.on('error', (error) => {
+                    console.error('❌ Erreur MQTT:', error);
+                    updateConnectionStatus(false, 'Erreur de connexion MQTT');
+                });
+                
+                mqttClient.on('offline', () => {
+                    console.warn('⚠️ MQTT hors ligne');
+                    updateConnectionStatus(false, 'MQTT hors ligne - Reconnexion...');
+                });
+                
+            } catch (error) {
+                console.error('❌ Erreur connexion MQTT:', error);
+                updateConnectionStatus(false, 'Impossible de se connecter');
+            }
+        }
+        
+        function handleMQTTMessage(topic, data) {
+            console.log('📨 MQTT reçu:', topic, data);
+            
+            if (topic === 'esp32/status' && data.channels) {
+                // Mise à jour des états des relais
+                data.channels.forEach((channel, index) => {
+                    const channelNum = index + 1;
+                    relayStates[channelNum] = channel.isActive || channel.active;
+                    updateRelayUI(channelNum, relayStates[channelNum]);
+                });
+            } else if (topic.includes('esp32/relay/') && topic.includes('/status')) {
+                // Mise à jour d'un relais spécifique
+                const channelMatch = topic.match(/esp32\/relay\/(\d+)\/status/);
+                if (channelMatch) {
+                    const channelNum = parseInt(channelMatch[1]);
+                    relayStates[channelNum] = data.active || data.state === 'on';
+                    updateRelayUI(channelNum, relayStates[channelNum]);
+                }
+            }
+        }
+        
+        function updateConnectionStatus(connected, message) {
+            const dot = document.getElementById('mqtt-dot');
+            const status = document.getElementById('connection-status');
+            const mqttStatus = document.getElementById('mqtt-status');
+            
+            if (connected) {
+                dot.classList.add('connected');
+                status.textContent = 'Connecté à distance';
+                mqttStatus.textContent = 'Connecté ✅';
+            } else {
+                dot.classList.remove('connected');
+                status.textContent = message;
+                mqttStatus.textContent = 'Déconnecté ❌';
+            }
+        }
+        
+        function toggleRelay(channel) {
+            if (!mqttClient || !mqttClient.connected) {
+                alert('❌ MQTT non connecté. Vérifiez votre connexion internet.');
+                return;
+            }
+            
+            const newState = !relayStates[channel];
+            console.log(`🔄 Envoi commande MQTT: Canal ${channel} = ${newState ? 'ON' : 'OFF'}`);
+            
+            // Mise à jour UI immédiate
+            updateRelayUI(channel, newState);
+            relayStates[channel] = newState;
+            
+            // Envoi commande MQTT
+            const command = {
+                action: 'relay_control',
+                channel: channel,
+                state: newState ? 'on' : 'off'
+            };
+            
+            mqttClient.publish(`esp32/relay/${channel}/command`, JSON.stringify(command));
+        }
+        
+        function updateRelayUI(channel, isOn) {
+            const button = document.getElementById(`relay-${channel}`);
+            const status = document.getElementById(`status-${channel}`);
+            
+            if (isOn) {
+                button.className = 'relay-toggle relay-on';
+                button.textContent = 'ALLUMÉ';
+                status.className = 'relay-status status-on';
+                status.textContent = 'ON';
+            } else {
+                button.className = 'relay-toggle relay-off';
+                button.textContent = 'ÉTEINT';
+                status.className = 'relay-status status-off';
+                status.textContent = 'OFF';
+            }
+        }
+        
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('current-time').textContent = now.toLocaleTimeString('fr-FR');
+        }
+        
+        function detectLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const info = `Lat: ${position.coords.latitude.toFixed(4)}, Lng: ${position.coords.longitude.toFixed(4)}`;
+                        document.getElementById('user-location').textContent = info;
+                    },
+                    () => {
+                        document.getElementById('user-location').textContent = 'Position non autorisée';
+                    }
+                );
+            } else {
+                document.getElementById('user-location').textContent = 'Géolocalisation non supportée';
+            }
+            
+            // Détecter le type de connexion
+            const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            if (connection) {
+                document.getElementById('location-info').textContent = 
+                    `Connexion ${connection.effectiveType || connection.type} - ${connection.downlink || 'N/A'} Mbps`;
+            } else {
+                document.getElementById('location-info').textContent = 'Connexion internet détectée';
+            }
+        }
+        
+        // Initialisation
+        setInterval(updateTime, 1000);
+        updateTime();
+        detectLocation();
+        connectMQTT();
+        
+        console.log('🌱 Green House Control à distance chargé !');
+        console.log('📱 Utilisable depuis n\'importe où avec une connexion internet');
+    </script>
+</body>
+</html>

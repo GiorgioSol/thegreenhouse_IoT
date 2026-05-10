@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌱 Green House PWA</title>
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#10b981">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="GreenHouse">
+    
+    <!-- Icons pour iOS -->
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSIjMTBiOTgxIj48cGF0aCBkPSJNMTIgMkM2LjQ4IDIgMiA2LjQ4IDIgMTJzNC40OCAxMCAxMCAxMCAxMC00LjQ4IDEwLTEwUzE3LjUyIDIgMTIgMnptLTIgMTVsLTUtNSAxLjQxLTEuNDFMMTAgMTQuMTdsNy41OS03LjU5TDE5IDhsLTkgOXoiLz48L3N2Zz4=">
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .pwa-header {
+            position: sticky;
+            top: 0;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 100;
+        }
+        
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .app-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #2d3748;
+        }
+        
+        .install-prompt {
+            display: none;
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            animation: pulse 2s infinite;
+        }
+        
+        .install-prompt.show {
+            display: block;
+        }
+        
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff9800;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-dot.connected {
+            background: #4caf50;
+        }
+        
+        .status-dot.error {
+            background: #f44336;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        
+        .connection-info {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        
+        .offline-notice {
+            background: #ff9800;
+            color: white;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+        }
+        
+        .offline-notice.show {
+            display: block;
+        }
+        
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .control-card {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            padding: 16px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            transform: translateZ(0);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .control-card:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .control-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        
+        .control-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #2d3748;
+        }
+        
+        .control-status {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .status-on {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+        }
+        
+        .status-off {
+            background: linear-gradient(135deg, #f56565, #e53e3e);
+            color: white;
+        }
+        
+        .control-toggle {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            transform: translateZ(0);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .control-toggle::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .control-toggle:active::before {
+            left: 100%;
+        }
+        
+        .toggle-on {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+            box-shadow: 0 4px 15px rgba(72, 187, 120, 0.4);
+        }
+        
+        .toggle-on:hover {
+            background: linear-gradient(135deg, #38a169, #2f855a);
+        }
+        
+        .toggle-off {
+            background: linear-gradient(135deg, #f56565, #e53e3e);
+            color: white;
+            box-shadow: 0 4px 15px rgba(245, 101, 101, 0.4);
+        }
+        
+        .toggle-off:hover {
+            background: linear-gradient(135deg, #e53e3e, #c53030);
+        }
+        
+        .info-panel {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            padding: 16px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            margin-bottom: 20px;
+        }
+        
+        .info-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 12px;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+        }
+        
+        .info-item {
+            text-align: center;
+            padding: 10px;
+            background: linear-gradient(135deg, #f7fafc, #edf2f7);
+            border-radius: 10px;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+        
+        .info-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2d3748;
+            display: block;
+        }
+        
+        .info-label {
+            font-size: 11px;
+            color: #718096;
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .pwa-footer {
+            text-align: center;
+            padding: 20px;
+            color: rgba(255,255,255,0.8);
+            font-size: 12px;
+        }
+        
+        @media (max-width: 768px) {
+            .controls-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            
+            body {
+                padding: 8px;
+            }
+            
+            .info-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header-content {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .connection-status {
+                font-size: 12px;
+            }
+        }
+        
+        /* Animations de chargement */
+        @keyframes shimmer {
+            0% { background-position: -200px 0; }
+            100% { background-position: calc(200px + 100%) 0; }
+        }
+        
+        .loading {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200px 100%;
+            animation: shimmer 1.5s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="pwa-header">
+        <div class="header-content">
+            <div class="app-title">
+                <span>🌱</span>
+                <span>Green House PWA</span>
+            </div>
+            <div class="connection-status">
+                <div id="status-dot" class="status-dot"></div>
+                <span id="connection-text">Connexion...</span>
+                <span id="current-time">--:--</span>
+            </div>
+        </div>
+        <button id="install-btn" class="install-prompt">📱 Installer App</button>
+    </div>
+    
+    <div id="offline-notice" class="offline-notice">
+        ⚠️ Mode hors ligne - Certaines fonctions peuvent être limitées
+    </div>
+    
+    <div class="connection-info">
+        <strong>📡 PWA + MQTT</strong> - Contrôle à distance via WebSocket<br>
+        <span id="location-info">🌐 Détection connexion...</span><br>
+        <span id="mqtt-info">🔗 broker.hivemq.com:8884</span>
+    </div>
+    
+    <div class="controls-grid">
+        <div class="control-card">
+            <div class="control-header">
+                <div class="control-name">💡 Éclairage</div>
+                <div id="status-1" class="control-status status-off">OFF</div>
+            </div>
+            <button id="control-1" class="control-toggle toggle-off" onclick="toggleControl(1)">
+                ÉTEINT
+            </button>
+        </div>
+        
+        <div class="control-card">
+            <div class="control-header">
+                <div class="control-name">🌪️ Ventilation</div>
+                <div id="status-2" class="control-status status-off">OFF</div>
+            </div>
+            <button id="control-2" class="control-toggle toggle-off" onclick="toggleControl(2)">
+                ÉTEINT
+            </button>
+        </div>
+        
+        <div class="control-card">
+            <div class="control-header">
+                <div class="control-name">💧 Pompe à Eau</div>
+                <div id="status-3" class="control-status status-off">OFF</div>
+            </div>
+            <button id="control-3" class="control-toggle toggle-off" onclick="toggleControl(3)">
+                ÉTEINT
+            </button>
+        </div>
+        
+        <div class="control-card">
+            <div class="control-header">
+                <div class="control-name">🌡️ Chauffage</div>
+                <div id="status-4" class="control-status status-off">OFF</div>
+            </div>
+            <button id="control-4" class="control-toggle toggle-off" onclick="toggleControl(4)">
+                ÉTEINT
+            </button>
+        </div>
+        
+        <div class="control-card">
+            <div class="control-header">
+                <div class="control-name">🌬️ Climatisation</div>
+                <div id="status-5" class="control-status status-off">OFF</div>
+            </div>
+            <button id="control-5" class="control-toggle toggle-off" onclick="toggleControl(5)">
+                ÉTEINT
+            </button>
+        </div>
+        
+        <div class="control-card">
+            <div class="control-header">
+                <div class="control-name">⚡ Auxiliaire</div>
+                <div id="status-6" class="control-status status-off">OFF</div>
+            </div>
+            <button id="control-6" class="control-toggle toggle-off" onclick="toggleControl(6)">
+                ÉTEINT
+            </button>
+        </div>
+    </div>
+    
+    <div class="info-panel">
+        <div class="info-title">📊 Données Énergétiques</div>
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-value" id="voltage">230V</span>
+                <div class="info-label">Tension</div>
+            </div>
+            <div class="info-item">
+                <span class="info-value" id="current">2.5A</span>
+                <div class="info-label">Courant</div>
+            </div>
+            <div class="info-item">
+                <span class="info-value" id="power">575W</span>
+                <div class="info-label">Puissance</div>
+            </div>
+            <div class="info-item">
+                <span class="info-value" id="energy">12.4kWh</span>
+                <div class="info-label">Énergie</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="pwa-footer">
+        <p><strong>🌱 Green House PWA v1.0</strong></p>
+        <p>Progressive Web App + MQTT • Fonctionne partout</p>
+        <p id="app-status">Chargement des fonctionnalités PWA...</p>
+    </div>
+
+    <!-- MQTT Library -->
+    <script src="https://unpkg.com/mqtt@5.0.0/dist/mqtt.min.js"></script>
+    
+    <script>
+        // Variables globales PWA + MQTT
+        let deferredPrompt;
+        let mqttClient = null;
+        let isOnline = navigator.onLine;
+        let controlStates = {1: false, 2: false, 3: false, 4: false, 5: false, 6: false};
+        
+        // === PWA INSTALLATION ===
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const installBtn = document.getElementById('install-btn');
+            installBtn.classList.add('show');
+        });
+        
+        document.getElementById('install-btn').addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log('[PWA] Installation:', outcome);
+                deferredPrompt = null;
+                document.getElementById('install-btn').classList.remove('show');
+            }
+        });
+        
+        window.addEventListener('appinstalled', () => {
+            console.log('[PWA] App installée avec succès !');
+            updateAppStatus('✅ App PWA installée');
+        });
+        
+        // === SERVICE WORKER ===
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(registration => {
+                    console.log('[PWA] Service Worker enregistré:', registration.scope);
+                    updateAppStatus('✅ PWA active - Fonctionne hors ligne');
+                })
+                .catch(error => {
+                    console.error('[PWA] Erreur Service Worker:', error);
+                    updateAppStatus('⚠️ PWA partiellement active');
+                });
+        }
+        
+        // === CONNEXION MQTT ===
+        function initMQTT() {
+            console.log('[MQTT] Initialisation...');
+            updateConnectionStatus('connecting', 'Connexion MQTT...');
+            
+            try {
+                const options = {
+                    hostname: 'broker.hivemq.com',
+                    port: 8884,
+                    protocol: 'wss',
+                    clean: true,
+                    connectTimeout: 8000,
+                    reconnectPeriod: 2000,
+                    keepalive: 60,
+                    clientId: `thegreenhouse-iot-${Math.random().toString(16).substr(2, 8)}`
+                };
+                
+                mqttClient = mqtt.connect('wss://broker.hivemq.com:8884/mqtt', options);
+                
+                mqttClient.on('connect', () => {
+                    console.log('[MQTT] ✅ Connecté au broker');
+                    updateConnectionStatus('connected', 'MQTT Connecté');
+                    
+                    // Abonnements
+                    mqttClient.subscribe('esp32/status', { qos: 1 });
+                    mqttClient.subscribe('esp32/relay/+/status', { qos: 1 });
+                    mqttClient.subscribe('esp32/meter/data', { qos: 1 });
+                    
+                    // Demander le statut initial
+                    mqttClient.publish('esp32/command', JSON.stringify({
+                        action: 'get_status',
+                        timestamp: Date.now()
+                    }));
+                });
+                
+                mqttClient.on('message', handleMQTTMessage);
+                
+                mqttClient.on('error', (error) => {
+                    console.error('[MQTT] ❌ Erreur:', error);
+                    updateConnectionStatus('error', 'Erreur MQTT');
+                });
+                
+                mqttClient.on('offline', () => {
+                    console.warn('[MQTT] ⚠️ Hors ligne');
+                    updateConnectionStatus('connecting', 'Reconnexion...');
+                });
+                
+                mqttClient.on('reconnect', () => {
+                    console.log('[MQTT] 🔄 Reconnexion...');
+                    updateConnectionStatus('connecting', 'Reconnexion MQTT...');
+                });
+                
+            } catch (error) {
+                console.error('[MQTT] Erreur initialisation:', error);
+                updateConnectionStatus('error', 'MQTT indisponible');
+            }
+        }
+        
+        function handleMQTTMessage(topic, message) {
+            try {
+                const data = JSON.parse(message.toString());
+                console.log('[MQTT] 📨 Reçu:', topic, data);
+                
+                if (topic === 'esp32/status' && data.channels) {
+                    // Mise à jour états des contrôles
+                    data.channels.forEach((channel, index) => {
+                        const controlNum = index + 1;
+                        const isActive = channel.isActive || channel.active || channel.state === 'on';
+                        controlStates[controlNum] = isActive;
+                        updateControlUI(controlNum, isActive);
+                    });
+                } else if (topic.includes('esp32/relay/') && topic.includes('/status')) {
+                    // Contrôle spécifique
+                    const match = topic.match(/esp32\/relay\/(\d+)\/status/);
+                    if (match) {
+                        const controlNum = parseInt(match[1]);
+                        const isActive = data.active || data.state === 'on';
+                        controlStates[controlNum] = isActive;
+                        updateControlUI(controlNum, isActive);
+                    }
+                } else if (topic === 'esp32/meter/data') {
+                    // Données énergétiques
+                    updateEnergyData(data);
+                }
+            } catch (error) {
+                console.log('[MQTT] Message brut:', topic, message.toString());
+            }
+        }
+        
+        // === CONTRÔLES ===
+        function toggleControl(controlNum) {
+            if (!mqttClient || !mqttClient.connected) {
+                alert('❌ MQTT non connecté. Vérifiez votre connexion internet.');
+                return;
+            }
+            
+            const newState = !controlStates[controlNum];
+            console.log(`[CONTRÔLE] ${controlNum} = ${newState ? 'ON' : 'OFF'}`);
+            
+            // Feedback visuel immédiat
+            updateControlUI(controlNum, newState);
+            controlStates[controlNum] = newState;
+            
+            // Vibration tactile
+            if (navigator.vibrate) {
+                navigator.vibrate(100);
+            }
+            
+            // Commande MQTT
+            const command = {
+                action: 'relay_control',
+                channel: controlNum,
+                state: newState ? 'on' : 'off',
+                timestamp: Date.now()
+            };
+            
+            mqttClient.publish(`esp32/relay/${controlNum}/command`, JSON.stringify(command));
+        }
+        
+        function updateControlUI(controlNum, isOn) {
+            const button = document.getElementById(`control-${controlNum}`);
+            const status = document.getElementById(`status-${controlNum}`);
+            
+            if (!button || !status) return;
+            
+            if (isOn) {
+                button.className = 'control-toggle toggle-on';
+                button.textContent = 'ALLUMÉ';
+                status.className = 'control-status status-on';
+                status.textContent = 'ON';
+            } else {
+                button.className = 'control-toggle toggle-off';
+                button.textContent = 'ÉTEINT';
+                status.className = 'control-status status-off';
+                status.textContent = 'OFF';
+            }
+        }
+        
+        function updateEnergyData(data) {
+            if (data.voltage !== undefined) {
+                document.getElementById('voltage').textContent = data.voltage.toFixed(1) + 'V';
+            }
+            if (data.current !== undefined) {
+                document.getElementById('current').textContent = data.current.toFixed(2) + 'A';
+            }
+            if (data.power !== undefined) {
+                document.getElementById('power').textContent = data.power.toFixed(0) + 'W';
+            }
+            if (data.energy !== undefined) {
+                document.getElementById('energy').textContent = data.energy.toFixed(1) + 'kWh';
+            }
+        }
+        
+        // === INTERFACE UTILISATEUR ===
+        function updateConnectionStatus(state, text) {
+            const dot = document.getElementById('status-dot');
+            const connectionText = document.getElementById('connection-text');
+            
+            dot.className = `status-dot ${state}`;
+            connectionText.textContent = text;
+        }
+        
+        function updateAppStatus(status) {
+            document.getElementById('app-status').textContent = status;
+        }
+        
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('current-time').textContent = now.toLocaleTimeString('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        function detectConnection() {
+            const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            let info = 'Connexion détectée';
+            
+            if (connection) {
+                const type = connection.effectiveType || connection.type || 'inconnue';
+                const speed = connection.downlink ? ` • ${connection.downlink} Mbps` : '';
+                info = `${type.toUpperCase()}${speed}`;
+            }
+            
+            document.getElementById('location-info').textContent = `🌐 ${info}`;
+        }
+        
+        // === GESTION HORS LIGNE ===
+        window.addEventListener('online', () => {
+            isOnline = true;
+            document.getElementById('offline-notice').classList.remove('show');
+            if (!mqttClient || !mqttClient.connected) {
+                initMQTT();
+            }
+        });
+        
+        window.addEventListener('offline', () => {
+            isOnline = false;
+            document.getElementById('offline-notice').classList.add('show');
+            updateConnectionStatus('error', 'Hors ligne');
+        });
+        
+        // === INITIALISATION ===
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('[PWA] 🌱 Green House PWA initialisée');
+            
+            // Démarrage des timers
+            setInterval(updateTime, 1000);
+            updateTime();
+            
+            // Détection connexion
+            detectConnection();
+            
+            // MQTT
+            if (isOnline) {
+                initMQTT();
+            } else {
+                updateConnectionStatus('error', 'Hors ligne');
+                document.getElementById('offline-notice').classList.add('show');
+            }
+            
+            updateAppStatus('🚀 PWA prête à l\'utilisation');
+        });
+        
+        console.log('[PWA] 🌱 Green House PWA + MQTT chargé ✅');
+    </script>
+</body>
+</html>

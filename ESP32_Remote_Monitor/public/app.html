@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Green House Control</title>
+    
+    <!-- PWA Configuration pour iOS -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#48bb78">
+    
+    <!-- Configuration iOS pour PWA native -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="GreenHouse">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSIjNDhiYjc4IiBzdHlsZT0iYmFja2dyb3VuZDogd2hpdGU7IGJvcmRlci1yYWRpdXM6IDIwJTsiPjxwYXRoIGQ9Ik0xMiAybC0zLjA5IDQuMjZMNCA2bDIgMy4wOUwxMiAyMmw2LTEyLjkxTDIwIDlsLTQuOTEtLjI0TDEyIDJ6TTEyIDZsMS4wOSAxLjU2TDE1LjUgOGwtMSAxLjU0TDEyIDEybC0yLjUtMi40NkwxMiA2eiIvPjwvc3ZnPg==">
+    
+    <!-- Méta données supplémentaires iOS -->
+    <meta name="apple-touch-fullscreen" content="yes">
+    <link rel="apple-touch-startup-image" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDc1IiBoZWlnaHQ9IjEwMjQiIGZpbGw9IiMxYTIwMmMiPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmaWxsPSIjNDhiYjc4IiBmb250LXNpemU9IjI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Hcm93IFJvb208L3RleHQ+PC9zdmc+">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+            background: linear-gradient(145deg, #1a202c 0%, #2d3748 100%);
+            color: white;
+            touch-action: manipulation;
+        }
+        
+        .app-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
+        }
+        
+        .header {
+            padding: 15px 20px 10px;
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .app-title {
+            font-size: 22px;
+            font-weight: 700;
+            text-align: center;
+            color: #48bb78;
+        }
+        
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            font-size: 14px;
+        }
+        
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ffd700;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-dot.connected {
+            background: #48bb78;
+        }
+        
+        .status-dot.error {
+            background: #f56565;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .controls-area {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .control-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        
+        .control-card {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(20px);
+            transition: all 0.3s ease;
+        }
+        
+        .control-card:active {
+            transform: scale(0.98);
+            background: rgba(255,255,255,0.12);
+        }
+        
+        .control-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .control-name {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .control-status {
+            font-size: 12px;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .status-on {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .status-off {
+            background: #718096;
+            color: white;
+        }
+        
+        .control-toggle {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .control-toggle:active {
+            transform: scale(0.95);
+        }
+        
+        .toggle-on {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+            box-shadow: 0 8px 25px rgba(72, 187, 120, 0.3);
+        }
+        
+        .toggle-off {
+            background: linear-gradient(135deg, #718096, #4a5568);
+            color: white;
+            box-shadow: 0 4px 15px rgba(113, 128, 150, 0.2);
+        }
+        
+        .install-banner {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: #48bb78;
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 600;
+            box-shadow: 0 8px 25px rgba(72, 187, 120, 0.4);
+            transform: translateY(100px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .install-banner.show {
+            transform: translateY(0);
+        }
+        
+        .install-button {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-top: 8px;
+            cursor: pointer;
+        }
+        
+        .meter-panel {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(20px);
+            max-width: 400px;
+            margin: 20px auto 0;
+        }
+        
+        .meter-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .meter-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #ffd700;
+        }
+        
+        .meter-status {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: rgba(255,215,0,0.2);
+            color: #ffd700;
+        }
+        
+        .meter-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .meter-item {
+            text-align: center;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .meter-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #ffd700;
+            margin-bottom: 4px;
+        }
+        
+        .meter-label {
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .meter-refresh {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #ffd700, #ffed4a);
+            color: #1a202c;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .meter-refresh:active {
+            transform: scale(0.95);
+        }
+        
+        .footer {
+            padding: 10px 20px;
+            text-align: center;
+            font-size: 12px;
+            color: rgba(255,255,255,0.6);
+            background: rgba(255,255,255,0.02);
+        }
+        
+        /* Optimisations iOS spécifiques */
+        @supports (-webkit-backdrop-filter: blur(10px)) {
+            .control-card {
+                -webkit-backdrop-filter: blur(20px);
+            }
+            .header {
+                -webkit-backdrop-filter: blur(10px);
+            }
+        }
+        
+        /* Support notch iPhone */
+        @supports (padding: max(0px)) {
+            .app-container {
+                padding: max(20px, env(safe-area-inset-top)) 0 max(20px, env(safe-area-inset-bottom)) 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <div class="app-title">🌱 Green House Control</div>
+            <div class="status-bar">
+                <div class="connection-status">
+                    <div id="status-dot" class="status-dot"></div>
+                    <span id="connection-text">Connexion...</span>
+                </div>
+                <div id="current-time">--:--</div>
+            </div>
+        </div>
+        
+        <div class="controls-area">
+            <div class="control-grid">
+                <!-- Lampe 1 -->
+                <div class="control-card">
+                    <div class="control-header">
+                        <div class="control-name">💡 Lampe 1</div>
+                        <div id="status-1" class="control-status status-off">OFF</div>
+                    </div>
+                    <button id="control-1" class="control-toggle toggle-off" onclick="toggleControl(1)">
+                        ÉTEINT
+                    </button>
+                </div>
+                
+                <!-- Relais 2 -->
+                <div class="control-card">
+                    <div class="control-header">
+                        <div class="control-name">🔌 Relais 2</div>
+                        <div id="status-2" class="control-status status-off">OFF</div>
+                    </div>
+                    <button id="control-2" class="control-toggle toggle-off" onclick="toggleControl(2)">
+                        ÉTEINT
+                    </button>
+                </div>
+                
+                <!-- Lampe 2 -->
+                <div class="control-card">
+                    <div class="control-header">
+                        <div class="control-name">💡 Lampe 2</div>
+                        <div id="status-3" class="control-status status-off">OFF</div>
+                    </div>
+                    <button id="control-3" class="control-toggle toggle-off" onclick="toggleControl(3)">
+                        ÉTEINT
+                    </button>
+                </div>
+                
+                <!-- Relais 4 -->
+                <div class="control-card">
+                    <div class="control-header">
+                        <div class="control-name">🔌 Relais 4</div>
+                        <div id="status-4" class="control-status status-off">OFF</div>
+                    </div>
+                    <button id="control-4" class="control-toggle toggle-off" onclick="toggleControl(4)">
+                        ÉTEINT
+                    </button>
+                </div>
+                
+                <!-- Climat -->
+                <div class="control-card">
+                    <div class="control-header">
+                        <div class="control-name">❄️ Climat</div>
+                        <div id="status-5" class="control-status status-off">OFF</div>
+                    </div>
+                    <button id="control-5" class="control-toggle toggle-off" onclick="toggleControl(5)">
+                        ÉTEINT
+                    </button>
+                </div>
+                
+                <!-- Relais 6 -->
+                <div class="control-card">
+                    <div class="control-header">
+                        <div class="control-name">🔌 Relais 6</div>
+                        <div id="status-6" class="control-status status-off">OFF</div>
+                    </div>
+                    <button id="control-6" class="control-toggle toggle-off" onclick="toggleControl(6)">
+                        ÉTEINT
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Panneau du compteur électrique -->
+        <div class="controls-area">
+            <div class="meter-panel">
+                <div class="meter-header">
+                    <div class="meter-title">⚡ Compteur Électrique</div>
+                    <div class="meter-status" id="meter-status">🔄 Lecture...</div>
+                </div>
+                
+                <div class="meter-grid">
+                    <div class="meter-item">
+                        <div class="meter-value" id="voltage-value">---V</div>
+                        <div class="meter-label">Tension</div>
+                    </div>
+                    <div class="meter-item">
+                        <div class="meter-value" id="current-value">---A</div>
+                        <div class="meter-label">Courant</div>
+                    </div>
+                    <div class="meter-item">
+                        <div class="meter-value" id="power-value">---W</div>
+                        <div class="meter-label">Puissance</div>
+                    </div>
+                    <div class="meter-item">
+                        <div class="meter-value" id="energy-value">---kWh</div>
+                        <div class="meter-label">Énergie</div>
+                    </div>
+                    <div class="meter-item">
+                        <div class="meter-value" id="frequency-value">---Hz</div>
+                        <div class="meter-label">Fréquence</div>
+                    </div>
+                    <div class="meter-item">
+                        <div class="meter-value" id="pf-value">---</div>
+                        <div class="meter-label">Cos φ</div>
+                    </div>
+                </div>
+                
+                <button class="meter-refresh" onclick="requestMeterData()">
+                    🔄 Actualiser compteur
+                </button>
+            </div>
+        </div>
+        
+        <div class="footer">
+            Green House Control • PWA installée
+        </div>
+    </div>
+    
+    <!-- Banner d'installation PWA -->
+    <div id="install-banner" class="install-banner">
+        📱 Installer l'app sur votre écran d'accueil
+        <br>
+        <button id="install-button" class="install-button">Installer maintenant</button>
+    </div>
+
+    <!-- MQTT Library -->
+    <script src="https://unpkg.com/mqtt@5.0.0/dist/mqtt.min.js"></script>
+    
+    <script>
+        // Variables PWA
+        let deferredPrompt;
+        let isInstalled = false;
+        let mqttClient = null;
+        let controlStates = {1: false, 2: false, 3: false, 4: false, 5: false, 6: false};
+        
+        // Détection iOS Safari pour PWA
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
+        
+        // Détection installation PWA
+        window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('🎯 PWA installation détectée (Chrome/Edge)');
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // Afficher la bannière si pas installée
+            if (!isInstalled && !window.matchMedia('(display-mode: standalone)').matches) {
+                setTimeout(() => {
+                    console.log('📱 Affichage bannière installation');
+                    document.getElementById('install-banner').classList.add('show');
+                }, 2000); // Délai de 2 secondes
+            }
+        });
+        
+        // Gestion du clic installation
+        document.getElementById('install-button').addEventListener('click', async (e) => {
+            e.preventDefault();
+            console.log('🔘 Bouton installation cliqué');
+            
+            if (isIOS && !isInStandaloneMode) {
+                // Instructions pour iOS Safari
+                console.log('📱 Détection iOS - Instructions manuelles');
+                alert('📱 INSTALLATION iOS:\\n\\n1️⃣ Appuyez sur le bouton \"Partager\" 📤\\n2️⃣ Sélectionnez \"Ajouter à l\\'écran d\\'accueil\"\\n3️⃣ Appuyez sur \"Ajouter\" pour confirmer\\n\\n✅ L\\'app apparaîtra sur votre écran d\\'accueil!');
+                return;
+            }
+            
+            if (deferredPrompt) {
+                console.log('🚀 Lancement installation PWA automatique...');
+                try {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    console.log('📊 Résultat installation:', outcome);
+                    
+                    if (outcome === 'accepted') {
+                        document.getElementById('install-banner').classList.remove('show');
+                        isInstalled = true;
+                        updateFooter('✅ App installée - Rechargez pour voir les changements');
+                    } else {
+                        console.log('❌ Installation refusée par utilisateur');
+                    }
+                    deferredPrompt = null;
+                } catch (error) {
+                    console.error('❌ Erreur installation PWA:', error);
+                    alert('❌ Erreur installation. Essayez depuis le menu navigateur.');
+                }
+            } else {
+                // Fallback : instructions manuelles pour tous navigateurs
+                console.log('🔄 Installation manuelle requise');
+                if (isIOS) {
+                    alert('📱 INSTALLATION iOS:\\n\\n1️⃣ Safari → Bouton \"Partager\" 📤\\n2️⃣ \"Ajouter à l\\'écran d\\'accueil\"\\n3️⃣ Confirmer \"Ajouter\"');
+                } else {
+                    alert('💻 INSTALLATION NAVIGATEUR:\\n\\n1️⃣ Menu navigateur (⋮)\\n2️⃣ \"Installer l\\'application\"\\n3️⃣ ou \"Ajouter à l\\'écran d\\'accueil\"');
+                }
+            }
+        });
+        
+        // Détection si déjà installée
+        window.addEventListener('appinstalled', () => {
+            console.log('PWA installée avec succès');
+            document.getElementById('install-banner').classList.remove('show');
+            isInstalled = true;
+            updateFooter('✅ App installée sur l\\'écran d\\'accueil');
+        });
+        
+        // Vérifier si lancée en mode standalone (PWA installée)
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            isInstalled = true;
+            updateFooter('✅ Lancée depuis l\\'écran d\\'accueil');
+        }
+        
+        // Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => {
+                    console.log('Service Worker enregistré');
+                    reg.addEventListener('updatefound', () => {
+                        console.log('Mise à jour PWA disponible');
+                    });
+                })
+                .catch(err => console.error('Erreur Service Worker:', err));
+        }
+        
+        // MQTT Connection
+        function initMQTT() {
+            console.log('Initialisation MQTT...');
+            updateConnectionStatus('connecting');
+            
+            const options = {
+                hostname: 'broker.hivemq.com',
+                port: 8884,
+                protocol: 'wss',
+                clean: true,
+                connectTimeout: 8000,
+                reconnectPeriod: 3000,
+                keepalive: 60,
+                clientId: `greenhouse-app-${Math.random().toString(16).substr(2, 8)}`
+            };
+            
+            try {
+                mqttClient = mqtt.connect('wss://broker.hivemq.com:8884/mqtt', options);
+                
+                mqttClient.on('connect', () => {
+                    console.log('MQTT connecté');
+                    updateConnectionStatus('connected');
+                    
+                    // Abonnements multiples
+                    const topics = [
+                        'esp32/relay/status',
+                        'esp32/relay/+/status', 
+                        'esp32/meter/data',
+                        'esp32/relay/heartbeat'
+                    ];
+                    
+                    topics.forEach(topic => {
+                        mqttClient.subscribe(topic, { qos: 1 }, (err) => {
+                            if (err) {
+                                console.error('Erreur abonnement:', topic, err);
+                            } else {
+                                console.log('Abonné à:', topic);
+                            }
+                        });
+                    });
+                    
+                    // Demander le statut et les données du compteur
+                    requestStatus();
+                    requestMeterData();
+                });
+                
+                mqttClient.on('message', handleMQTTMessage);
+                
+                mqttClient.on('error', (error) => {
+                    console.error('Erreur MQTT:', error);
+                    updateConnectionStatus('error');
+                });
+                
+                mqttClient.on('offline', () => {
+                    console.log('MQTT hors ligne');
+                    updateConnectionStatus('connecting');
+                });
+                
+            } catch (error) {
+                console.error('Erreur init MQTT:', error);
+                updateConnectionStatus('error');
+            }
+        }
+        
+        function handleMQTTMessage(topic, message) {
+            try {
+                const data = JSON.parse(message.toString());
+                console.log('📨 MQTT reçu:', topic, data);
+                
+                if (topic === 'esp32/relay/status') {
+                    // Status général des relais selon format ESP32
+                    if (data.channels && Array.isArray(data.channels)) {
+                        data.channels.forEach((channel, index) => {
+                            const controlNum = index + 1; // ESP32 utilise 0-5, PWA utilise 1-6
+                            // L'ESP32 publie channel.active pour l'état physique réel
+                            const isActive = channel.active === true;
+                            controlStates[controlNum] = isActive;
+                            updateControlUI(controlNum, isActive);
+                            console.log(`🔌 Canal ${controlNum} (idx:${index}): active=${channel.active}, state=${channel.state}, état=${isActive}`);
+                        });
+                        console.log('✅ États relais mis à jour:', controlStates);
+                    }
+                } else if (topic === 'esp32/meter/data') {
+                    // Données du compteur électrique selon format ESP32
+                    console.log('⚡ Données compteur reçues:', data);
+                    updateMeterDataESP32(data);
+                } else if (topic === 'esp32/relay/heartbeat') {
+                    console.log('❤️ Heartbeat ESP32:', data);
+                } else {
+                    console.log('❓ Topic MQTT inconnu:', topic, message.toString());
+                }
+            } catch (error) {
+                console.log('⚠️ Erreur parsing MQTT:', error);
+                console.log('Message MQTT brut:', topic, message.toString());
+            }
+        }
+        
+        function requestStatus() {
+            if (mqttClient && mqttClient.connected) {
+                console.log('🔄 Demande statut ESP32...');
+                const request = {
+                    action: 'get_status',
+                    timestamp: Date.now()
+                };
+                mqttClient.publish('esp32/relay/command', JSON.stringify(request));
+            }
+        }
+        
+        function requestMeterData() {
+            if (mqttClient && mqttClient.connected) {
+                console.log('Demande données compteur...');
+                mqttClient.publish('esp32/meter/request', JSON.stringify({
+                    action: 'read_meter',
+                    timestamp: Date.now()
+                }));
+            }
+        }
+        
+        function toggleControl(controlNum) {
+            if (!mqttClient || !mqttClient.connected) {
+                alert('❌ Non connecté au système');
+                return;
+            }
+            
+            const newState = !controlStates[controlNum];
+            console.log(`🏛️ Contrôle ${controlNum}: ${newState ? 'ON' : 'OFF'}`);
+            
+            // Feedback immédiat
+            updateControlUI(controlNum, newState);
+            controlStates[controlNum] = newState;
+            
+            // Vibration
+            if (navigator.vibrate) {
+                navigator.vibrate(50);
+            }
+            
+            // Commande MQTT - Format ESP32: channel 0-5, state 0/2
+            const command = {
+                channel: controlNum - 1,  // Convertir 1-6 vers 0-5 pour ESP32
+                state: newState ? 2 : 0,  // 2=ON forcé, 0=OFF (pas AUTO=1)
+                timestamp: Date.now()
+            };
+            
+            console.log('📡 Envoi MQTT:', command);
+            mqttClient.publish('esp32/relay/command', JSON.stringify(command));
+        }
+        
+        function updateMeterDataESP32(data) {
+            console.log('Traitement données compteur ESP32:', data);
+            
+            // Indiquer que les données ont été reçues
+            const meterStatus = document.getElementById('meter-status');
+            if (data.connected === false) {
+                meterStatus.textContent = '❌ Compteur déconnecté';
+                meterStatus.style.background = 'rgba(245, 101, 101, 0.2)';
+                meterStatus.style.color = '#f56565';
+                return;
+            }
+            
+            meterStatus.textContent = '✅ Données reçues';
+            meterStatus.style.background = 'rgba(72, 187, 120, 0.2)';
+            meterStatus.style.color = '#48bb78';
+            
+            // Reset après 3 secondes
+            setTimeout(() => {
+                meterStatus.textContent = '⚡ En ligne';
+                meterStatus.style.background = 'rgba(255,215,0,0.2)';
+                meterStatus.style.color = '#ffd700';
+            }, 3000);
+            
+            // Voltage (première phase L1-N)
+            if (data.voltages_LN && data.voltages_LN.v1 !== undefined) {
+                const voltage = parseFloat(data.voltages_LN.v1);
+                document.getElementById('voltage-value').textContent = voltage.toFixed(1) + 'V';
+            }
+            
+            // Current (première phase)
+            if (data.currents && data.currents.i1 !== undefined) {
+                const current = parseFloat(data.currents.i1);
+                document.getElementById('current-value').textContent = current.toFixed(2) + 'A';
+            }
+            
+            // Power (puissance totale)
+            if (data.powers && data.powers.pTotal_W !== undefined) {
+                const power = parseFloat(data.powers.pTotal_W);
+                document.getElementById('power-value').textContent = power.toFixed(0) + 'W';
+            }
+            
+            // Energy (énergie importée)
+            if (data.energy_import_kWh !== undefined) {
+                const energy = parseFloat(data.energy_import_kWh);
+                document.getElementById('energy-value').textContent = energy.toFixed(1) + 'kWh';
+            }
+            
+            // Frequency
+            if (data.frequency_Hz !== undefined) {
+                const frequency = parseFloat(data.frequency_Hz);
+                document.getElementById('frequency-value').textContent = frequency.toFixed(1) + 'Hz';
+            } else {
+                document.getElementById('frequency-value').textContent = '50.0Hz'; // Défaut Europe
+            }
+            
+            // Power Factor (facteur de puissance total)
+            if (data.power_factors && data.power_factors.pfTotal !== undefined) {
+                const pf = parseFloat(data.power_factors.pfTotal);
+                document.getElementById('pf-value').textContent = pf.toFixed(2);
+            } else {
+                // Calcul approximatif si pas fourni
+                const voltage = data.voltages_LN ? parseFloat(data.voltages_LN.v1) : 0;
+                const current = data.currents ? parseFloat(data.currents.i1) : 0;
+                const power = data.powers ? parseFloat(data.powers.pTotal_W) : 0;
+                
+                if (voltage > 0 && current > 0 && power > 0) {
+                    const apparentPower = voltage * current;
+                    const pf = power / apparentPower;
+                    document.getElementById('pf-value').textContent = pf.toFixed(2);
+                } else {
+                    document.getElementById('pf-value').textContent = '---';
+                }
+            }
+            
+            console.log('✅ Interface compteur mise à jour');
+        }
+        
+        // Fonction globale pour le bouton refresh
+        window.requestMeterData = function() {
+            console.log('🔄 Bouton refresh compteur cliqué');
+            const meterStatus = document.getElementById('meter-status');
+            meterStatus.textContent = '🔄 Lecture...';
+            meterStatus.style.background = 'rgba(255,165,0,0.2)';
+            meterStatus.style.color = '#ffa500';
+            
+            if (mqttClient && mqttClient.connected) {
+                // Publier sur le topic de demande que l'ESP32 écoute
+                const request = {
+                    action: 'read_meter',
+                    timestamp: Date.now()
+                };
+                console.log('Envoi demande compteur:', request);
+                mqttClient.publish('esp32/meter/request', JSON.stringify(request));
+                
+                // Timeout si pas de réponse après 10 secondes
+                setTimeout(() => {
+                    if (meterStatus.textContent.includes('Lecture')) {
+                        meterStatus.textContent = '⏱️ Timeout';
+                        meterStatus.style.background = 'rgba(255, 193, 7, 0.2)';
+                        meterStatus.style.color = '#ffc107';
+                    }
+                }, 10000);
+            } else {
+                setTimeout(() => {
+                    meterStatus.textContent = '❌ Non connecté';
+                    meterStatus.style.background = 'rgba(245, 101, 101, 0.2)';
+                    meterStatus.style.color = '#f56565';
+                }, 1000);
+            }
+        };
+        
+        function updateControlUI(controlNum, isOn) {
+            const button = document.getElementById(`control-${controlNum}`);
+            const status = document.getElementById(`status-${controlNum}`);
+            
+            if (button && status) {
+                if (isOn) {
+                    button.className = 'control-toggle toggle-on';
+                    button.textContent = 'ALLUMÉ';
+                    status.className = 'control-status status-on';
+                    status.textContent = 'ON';
+                } else {
+                    button.className = 'control-toggle toggle-off';
+                    button.textContent = 'ÉTEINT';
+                    status.className = 'control-status status-off';
+                    status.textContent = 'OFF';
+                }
+            }
+        }
+        
+        function updateConnectionStatus(state) {
+            const dot = document.getElementById('status-dot');
+            const text = document.getElementById('connection-text');
+            
+            dot.className = `status-dot ${state}`;
+            
+            switch (state) {
+                case 'connected':
+                    text.textContent = 'Connecté';
+                    break;
+                case 'connecting':
+                    text.textContent = 'Connexion...';
+                    break;
+                case 'error':
+                    text.textContent = 'Erreur';
+                    break;
+            }
+        }
+        
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('current-time').textContent = 
+                now.toLocaleTimeString('fr-FR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+        }
+        
+        function updateFooter(text) {
+            document.querySelector('.footer').textContent = text;
+        }
+        
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('App PWA initialisée');
+            
+            // Masquer banner si déjà installée
+            if (isInstalled) {
+                document.getElementById('install-banner').style.display = 'none';
+            }
+            
+            // Vérifier si déjà en mode standalone
+            if (window.matchMedia('(display-mode: standalone)').matches) {
+                isInstalled = true;
+                updateFooter('✅ Lancée en mode app native');
+                document.getElementById('install-banner').style.display = 'none';
+            }
+            
+            // Démarrer les timers
+            setInterval(updateTime, 1000);
+            updateTime();
+            
+            // Connexion MQTT
+            if (navigator.onLine) {
+                initMQTT();
+                // Rafraîchir les données du compteur toutes les 30 secondes
+                setInterval(() => {
+                    if (mqttClient && mqttClient.connected) {
+                        requestMeterData();
+                    }
+                }, 30000);
+            }
+            
+            // Gestion réseau
+            window.addEventListener('online', () => {
+                console.log('Connexion réseau détectée');
+                if (!mqttClient || !mqttClient.connected) {
+                    initMQTT();
+                }
+            });
+            
+            window.addEventListener('offline', () => {
+                console.log('Connexion réseau perdue');
+                updateConnectionStatus('error');
+            });
+            
+            // Demander les statuts après 5 secondes d'initialisation
+            setTimeout(() => {
+                if (mqttClient && mqttClient.connected) {
+                    console.log('Demande statuts après initialisation...');
+                    requestStatus();
+                    requestMeterData();
+                }
+            }, 5000);
+        });
+        
+        console.log('Green House PWA chargée ✅');
+    </script>
+</body>
+</html>

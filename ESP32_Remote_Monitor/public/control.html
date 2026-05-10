@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌱 Green House - Contrôle Relais</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#10b981">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4caf50;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .relay-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .relay-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .relay-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        
+        .relay-name {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .relay-status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .status-on {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        
+        .status-off {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .relay-toggle {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .relay-on {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .relay-on:hover {
+            background: #45a049;
+        }
+        
+        .relay-off {
+            background: #f44336;
+            color: white;
+        }
+        
+        .relay-off:hover {
+            background: #e53935;
+        }
+        
+        .info-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .energy-data {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .energy-item {
+            text-align: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .energy-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2e7d32;
+        }
+        
+        .energy-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .relay-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌱 Green House Control</h1>
+            <div class="status">
+                <div class="status-dot"></div>
+                <span>Système en ligne</span>
+                <span id="current-time">--:--:--</span>
+            </div>
+        </div>
+        
+        <div class="relay-grid">
+            <div class="relay-card">
+                <div class="relay-header">
+                    <div class="relay-name">💡 Éclairage Principal</div>
+                    <div id="status-1" class="relay-status status-off">OFF</div>
+                </div>
+                <button id="relay-1" class="relay-toggle relay-off" onclick="toggleRelay(1)">
+                    ÉTEINT
+                </button>
+            </div>
+            
+            <div class="relay-card">
+                <div class="relay-header">
+                    <div class="relay-name">🌪️ Ventilation</div>
+                    <div id="status-2" class="relay-status status-off">OFF</div>
+                </div>
+                <button id="relay-2" class="relay-toggle relay-off" onclick="toggleRelay(2)">
+                    ÉTEINT
+                </button>
+            </div>
+            
+            <div class="relay-card">
+                <div class="relay-header">
+                    <div class="relay-name">💧 Pompe à Eau</div>
+                    <div id="status-3" class="relay-status status-off">OFF</div>
+                </div>
+                <button id="relay-3" class="relay-toggle relay-off" onclick="toggleRelay(3)">
+                    ÉTEINT
+                </button>
+            </div>
+            
+            <div class="relay-card">
+                <div class="relay-header">
+                    <div class="relay-name">🌡️ Chauffage</div>
+                    <div id="status-4" class="relay-status status-off">OFF</div>
+                </div>
+                <button id="relay-4" class="relay-toggle relay-off" onclick="toggleRelay(4)">
+                    ÉTEINT
+                </button>
+            </div>
+            
+            <div class="relay-card">
+                <div class="relay-header">
+                    <div class="relay-name">🌬️ Climatisation</div>
+                    <div id="status-5" class="relay-status status-off">OFF</div>
+                </div>
+                <button id="relay-5" class="relay-toggle relay-off" onclick="toggleRelay(5)">
+                    ÉTEINT
+                </button>
+            </div>
+            
+            <div class="relay-card">
+                <div class="relay-header">
+                    <div class="relay-name">⚡ Auxiliaire</div>
+                    <div id="status-6" class="relay-status status-off">OFF</div>
+                </div>
+                <button id="relay-6" class="relay-toggle relay-off" onclick="toggleRelay(6)">
+                    ÉTEINT
+                </button>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <h3>📊 Données Énergétiques</h3>
+            <div class="energy-data">
+                <div class="energy-item">
+                    <div class="energy-value" id="voltage">230V</div>
+                    <div class="energy-label">Tension</div>
+                </div>
+                <div class="energy-item">
+                    <div class="energy-value" id="current">2.5A</div>
+                    <div class="energy-label">Courant</div>
+                </div>
+                <div class="energy-item">
+                    <div class="energy-value" id="power">575W</div>
+                    <div class="energy-label">Puissance</div>
+                </div>
+                <div class="energy-item">
+                    <div class="energy-value" id="energy">12.4kWh</div>
+                    <div class="energy-label">Énergie</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // État des relais (récupéré depuis l'ESP32)
+        let relayStates = {
+            1: false, 2: false, 3: false, 
+            4: false, 5: false, 6: false
+        };
+        
+        async function loadESP32Status() {
+            try {
+                console.log('🔄 Chargement état ESP32...');
+                const response = await fetch('http://192.168.178.21/status');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ État ESP32 reçu:', data);
+                    
+                    // Mise à jour des relais
+                    if (data.channels) {
+                        data.channels.forEach((channel, index) => {
+                            const channelNum = index + 1;
+                            relayStates[channelNum] = channel.isActive;
+                            updateRelayUI(channelNum, channel.isActive);
+                        });
+                    }
+                    
+                    // Mise à jour des données énergétiques si disponibles
+                    if (data.meterData) {
+                        updateEnergyData(data.meterData);
+                    }
+                } else {
+                    console.warn('⚠️ ESP32 non accessible, mode hors ligne');
+                }
+            } catch (error) {
+                console.warn('⚠️ ESP32 non accessible, mode démonstration');
+            }
+        }
+        
+        function updateEnergyData(meterData) {
+            if (meterData.voltage !== undefined) {
+                document.getElementById('voltage').textContent = meterData.voltage.toFixed(1) + 'V';
+            }
+            if (meterData.current !== undefined) {
+                document.getElementById('current').textContent = meterData.current.toFixed(2) + 'A';
+            }
+            if (meterData.power !== undefined) {
+                document.getElementById('power').textContent = meterData.power.toFixed(0) + 'W';
+            }
+            if (meterData.energy !== undefined) {
+                document.getElementById('energy').textContent = meterData.energy.toFixed(1) + 'kWh';
+            }
+        }
+        
+        function toggleRelay(channel) {
+            const currentState = relayStates[channel];
+            const newState = !currentState;
+            
+            // Mise à jour visuelle immédiate
+            updateRelayUI(channel, newState);
+            relayStates[channel] = newState;
+            
+            // En production, ceci ferait un appel à l'ESP32
+            sendRelayCommand(channel, newState);
+        }
+        
+        function updateRelayUI(channel, isOn) {
+            const button = document.getElementById(`relay-${channel}`);
+            const status = document.getElementById(`status-${channel}`);
+            
+            if (isOn) {
+                button.className = 'relay-toggle relay-on';
+                button.textContent = 'ALLUMÉ';
+                status.className = 'relay-status status-on';
+                status.textContent = 'ON';
+            } else {
+                button.className = 'relay-toggle relay-off';
+                button.textContent = 'ÉTEINT';
+                status.className = 'relay-status status-off';
+                status.textContent = 'OFF';
+            }
+        }
+        
+        async function sendRelayCommand(channel, isOn) {
+            console.log(`🔄 Envoi commande: Canal ${channel} = ${isOn ? 'ON' : 'OFF'}`);
+            
+            try {
+                // Appel réel à l'ESP32
+                const response = await fetch(`http://192.168.178.21/relay${channel}/${isOn ? 'on' : 'off'}`, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ Relais mis à jour:', data);
+                } else {
+                    console.warn('⚠️ Réponse ESP32 non-OK:', response.status);
+                }
+            } catch (error) {
+                console.error('❌ Erreur ESP32:', error);
+                // En cas d'erreur, on garde l'état local pour l'interface
+            }
+        }
+        
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('current-time').textContent = 
+                now.toLocaleTimeString('fr-FR');
+        }
+        
+        // Mise à jour de l'heure toutes les secondes
+        setInterval(updateTime, 1000);
+        updateTime();
+        
+        // Chargement initial de l'état ESP32
+        loadESP32Status();
+        
+        // Actualisation automatique toutes les 30 secondes
+        setInterval(loadESP32Status, 30000);
+        
+        // Enregistrer le service worker pour PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(() => console.log('✅ Service Worker enregistré'))
+                .catch(() => console.log('⚠️ Service Worker non disponible'));
+        }
+        
+        console.log('🌱 Green House Control chargé !');
+        console.log('📱 Mode PWA activé - Ajoutez à l\'écran d\'accueil !');
+    </script>
+</body>
+</html>

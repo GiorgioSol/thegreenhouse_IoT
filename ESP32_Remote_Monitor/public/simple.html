@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Simple - Green House</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="GreenHouse">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a202c;
+            color: white;
+            padding: 20px;
+        }
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        h1 {
+            margin-bottom: 20px;
+            color: #48bb78;
+        }
+        .test-section {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+        }
+        button {
+            background: #48bb78;
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        button:active {
+            background: #38a169;
+            transform: scale(0.98);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success { background: rgba(72, 187, 120, 0.3); }
+        .error { background: rgba(245, 101, 101, 0.3); }
+        .warning { background: rgba(255, 193, 7, 0.3); }
+        #log {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            text-align: left;
+            height: 150px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌱 Test Simple - Green House</h1>
+        
+        <div class="test-section">
+            <h3>📱 PWA Installation</h3>
+            <div id="pwa-status" class="status warning">Test en cours...</div>
+            <button onclick="testInstall()">🔽 Installer App</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>🌐 Test MQTT</h3>
+            <div id="mqtt-status" class="status error">Non testé</div>
+            <button onclick="connectMQTT()">🔗 Connecter MQTT</button>
+            <button onclick="testRelay()">💡 Test Relais 1</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>📊 Logs</h3>
+            <div id="log"></div>
+            <button onclick="clearLog()">🗑️ Vider</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
+    <script>
+        let mqttClient = null;
+        let installPrompt = null;
+        
+        // Logging
+        function log(message) {
+            const now = new Date().toLocaleTimeString();
+            const logEl = document.getElementById('log');
+            logEl.innerHTML += `[${now}] ${message}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        function setStatus(elementId, message, type) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.className = `status ${type}`;
+        }
+        
+        // PWA Tests
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                           ('standalone' in window.navigator && window.navigator.standalone);
+        
+        function testInstall() {
+            log('🔘 Test installation PWA...');
+            
+            if (isStandalone) {
+                setStatus('pwa-status', '✅ Déjà installée !', 'success');
+                log('✅ PWA déjà installée');
+                return;
+            }
+            
+            if (isIOS) {
+                setStatus('pwa-status', '📱 Instructions iOS', 'warning');
+                alert('📱 INSTALLATION iOS:\n\n1. Appuyez sur Partager 📤\n2. "Ajouter à l\'écran d\'accueil"\n3. Appuyez sur "Ajouter"');
+                log('📱 Instructions iOS affichées');
+            } else if (installPrompt) {
+                installPrompt.prompt();
+                installPrompt.userChoice.then(result => {
+                    log(`🎯 Résultat: ${result.outcome}`);
+                    if (result.outcome === 'accepted') {
+                        setStatus('pwa-status', '✅ Installée !', 'success');
+                    }
+                });
+            } else {
+                setStatus('pwa-status', '⚠️ Installation manuelle', 'warning');
+                alert('💻 Menu navigateur ⋮ → "Installer l\'application"');
+                log('📝 Instructions manuelles affichées');
+            }
+        }
+        
+        // MQTT Tests
+        function connectMQTT() {
+            log('🌐 Connexion MQTT...');
+            setStatus('mqtt-status', '⏳ Connexion...', 'warning');
+            
+            const options = {
+                hostname: 'broker.hivemq.com',
+                port: 8884,
+                protocol: 'wss',
+                clean: true,
+                connectTimeout: 10000,
+            };
+            
+            try {
+                mqttClient = mqtt.connect(`wss://${options.hostname}:${options.port}`, options);
+                
+                mqttClient.on('connect', () => {
+                    log('✅ MQTT connecté !');
+                    setStatus('mqtt-status', '✅ Connecté', 'success');
+                    
+                    // S'abonner aux topics
+                    mqttClient.subscribe('esp32/relay/status');
+                    mqttClient.subscribe('esp32/meter/data');
+                    log('📡 Abonnements activés');
+                });
+                
+                mqttClient.on('error', (error) => {
+                    log(`❌ Erreur MQTT: ${error.message}`);
+                    setStatus('mqtt-status', '❌ Erreur connexion', 'error');
+                });
+                
+                mqttClient.on('message', (topic, message) => {
+                    try {
+                        const data = JSON.parse(message.toString());
+                        log(`📨 [${topic}]: ${JSON.stringify(data).substring(0, 100)}...`);
+                    } catch (e) {
+                        log(`📨 [${topic}]: ${message.toString()}`);
+                    }
+                });
+                
+                // Timeout
+                setTimeout(() => {
+                    if (!mqttClient.connected) {
+                        log('⏰ Timeout connexion MQTT');
+                        setStatus('mqtt-status', '⏰ Timeout', 'error');
+                    }
+                }, 15000);
+                
+            } catch (error) {
+                log(`❌ Erreur MQTT: ${error.message}`);
+                setStatus('mqtt-status', '❌ Erreur', 'error');
+            }
+        }
+        
+        function testRelay() {
+            if (!mqttClient || !mqttClient.connected) {
+                log('❌ MQTT non connecté');
+                alert('Connectez-vous d\'abord à MQTT !');
+                return;
+            }
+            
+            const command = {
+                channel: 0,  // CH1 = index 0
+                state: 2,    // ON forcé
+                timestamp: Date.now()
+            };
+            
+            log(`🔧 Commande relais: ${JSON.stringify(command)}`);
+            mqttClient.publish('esp32/relay/command', JSON.stringify(command));
+            
+            // Test retour à OFF après 3 secondes
+            setTimeout(() => {
+                const offCommand = { ...command, state: 0 };
+                log(`🔧 Arrêt relais: ${JSON.stringify(offCommand)}`);
+                mqttClient.publish('esp32/relay/command', JSON.stringify(offCommand));
+            }, 3000);
+        }
+        
+        // Event listeners
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            installPrompt = e;
+            setStatus('pwa-status', '🔽 Installation disponible', 'success');
+            log('🎯 Installation PWA disponible');
+        });
+        
+        window.addEventListener('appinstalled', () => {
+            log('✅ PWA installée avec succès !');
+            setStatus('pwa-status', '✅ Installée !', 'success');
+        });
+        
+        // Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(() => log('✅ Service Worker OK'))
+                .catch(err => log(`❌ SW Error: ${err.message}`));
+        }
+        
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', () => {
+            log('🚀 Test Simple initialisé');
+            
+            if (isIOS) {
+                log('📱 Détection iOS');
+            }
+            if (isStandalone) {
+                setStatus('pwa-status', '✅ Mode standalone', 'success');
+                log('✅ Mode standalone détecté');
+            }
+            
+            // Test auto-connexion MQTT après 2 secondes
+            setTimeout(() => {
+                log('🔄 Test auto-connexion MQTT...');
+                connectMQTT();
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Basic</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a202c;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 { color: #48bb78; margin-bottom: 30px; }
+        .box {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        button {
+            background: #48bb78;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin: 10px 0;
+        }
+        #info {
+            background: rgba(72, 187, 120, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: monospace;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Test Ultra-Basique</h1>
+    
+    <div class="box">
+        <h3>📱 Informations Navigateur</h3>
+        <div id="info">Chargement...</div>
+    </div>
+    
+    <div class="box">
+        <h3>⚡ Test Basique</h3>
+        <button onclick="testBasic()">🔴 Cliquer pour tester</button>
+        <div id="result">Cliquez le bouton ci-dessus</div>
+    </div>
+    
+    <div class="box">
+        <h3>📱 Test PWA Simple</h3>
+        <button onclick="testPWA()">📲 Test Installation PWA</button>
+        <div id="pwa-result">Pas encore testé</div>
+    </div>
+
+    <script>
+        // Test ultra-basique sans dépendances externes
+        function testBasic() {
+            document.getElementById('result').innerHTML = '✅ JavaScript fonctionne !<br>Timestamp: ' + new Date().toLocaleString();
+        }
+        
+        function testPWA() {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+            const hasStandaloneProp = ('standalone' in window.navigator && window.navigator.standalone);
+            
+            let result = '📱 Tests PWA:<br>';
+            result += 'iOS détecté: ' + (isIOS ? '✅ OUI' : '❌ NON') + '<br>';
+            result += 'Mode Standalone: ' + (isStandalone ? '✅ OUI' : '❌ NON') + '<br>';
+            result += 'Propriété standalone: ' + (hasStandaloneProp ? '✅ OUI' : '❌ NON') + '<br>';
+            
+            if (isIOS) {
+                result += '<br>🔧 Pour installer sur iOS:<br>';
+                result += '1. Bouton Partager 📤<br>';
+                result += '2. "Ajouter à l\\'écran d\\'accueil"<br>';
+                result += '3. Appuyer "Ajouter"';
+            }
+            
+            document.getElementById('pwa-result').innerHTML = result;
+        }
+        
+        // Informations navigateur
+        document.addEventListener('DOMContentLoaded', function() {
+            const info = document.getElementById('info');
+            let details = '';
+            
+            details += 'User Agent: ' + navigator.userAgent + '<br><br>';
+            details += 'URL: ' + window.location.href + '<br><br>';
+            details += 'Largeur écran: ' + window.screen.width + 'px<br>';
+            details += 'Hauteur écran: ' + window.screen.height + 'px<br><br>';
+            details += 'Service Worker supporté: ' + ('serviceWorker' in navigator ? '✅' : '❌') + '<br>';
+            details += 'Géolocalisation supportée: ' + ('geolocation' in navigator ? '✅' : '❌') + '<br>';
+            details += 'LocalStorage supporté: ' + (typeof(Storage) !== "undefined" ? '✅' : '❌');
+            
+            info.innerHTML = details;
+            
+            // Test automatique au chargement
+            setTimeout(testBasic, 1000);
+        });
+    </script>
+</body>
+</html>

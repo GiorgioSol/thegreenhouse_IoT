@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Debug Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
+        .test { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-test { background: #007bff; color: white; }
+        .btn-relay { background: #28a745; color: white; }
+        #log { background: white; border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: auto; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>🔧 ESP32 Debug Test</h1>
+    
+    <div id="status" class="test warning">
+        🔄 Initialisation...
+    </div>
+    
+    <div>
+        <button class="btn-test" onclick="testWebSocket()">Test WebSocket Direct</button>
+        <button class="btn-test" onclick="testMQTT()">Test MQTT via CDN</button>
+        <button class="btn-test" onclick="testMQTTLocal()">Test MQTT Local</button>
+        <button class="btn-relay" onclick="sendTestCommand()">Test Commande Relay</button>
+        <button class="btn-test" onclick="clearLog()">Effacer Log</button>
+    </div>
+    
+    <h3>📋 Log de debug :</h3>
+    <div id="log"></div>
+    
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${time}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        function updateStatus(message, type = 'warning') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `test ${type}`;
+            statusDiv.innerHTML = message;
+        }
+        
+        // Test WebSocket direct
+        function testWebSocket() {
+            log('🧪 Test WebSocket direct...');
+            
+            try {
+                const ws = new WebSocket('wss://broker.hivemq.com:8884/mqtt');
+                
+                ws.onopen = function() {
+                    log('✅ WebSocket connecté !');
+                    updateStatus('✅ WebSocket OK', 'success');
+                    ws.close();
+                };
+                
+                ws.onerror = function(error) {
+                    log('❌ Erreur WebSocket: ' + error);
+                    updateStatus('❌ WebSocket ERREUR', 'error');
+                };
+                
+                ws.onclose = function() {
+                    log('🔌 WebSocket fermé');
+                };
+                
+            } catch (error) {
+                log('❌ Exception WebSocket: ' + error.message);
+                updateStatus('❌ WebSocket EXCEPTION', 'error');
+            }
+        }
+        
+        // Test MQTT avec CDN
+        function testMQTT() {
+            log('🧪 Chargement MQTT.js depuis CDN...');
+            
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/mqtt@5.8.4/dist/mqtt.min.js';
+            script.onload = function() {
+                log('✅ MQTT.js chargé depuis CDN');
+                connectMQTT();
+            };
+            script.onerror = function() {
+                log('❌ Erreur chargement MQTT.js CDN');
+                updateStatus('❌ CDN ERREUR', 'error');
+            };
+            document.head.appendChild(script);
+        }
+        
+        // Test MQTT local (fallback)
+        function testMQTTLocal() {
+            log('🧪 Test connexion MQTT locale...');
+            
+            if (typeof mqtt === 'undefined') {
+                log('❌ MQTT.js non disponible');
+                updateStatus('❌ MQTT.JS MANQUANT', 'error');
+                return;
+            }
+            
+            connectMQTT();
+        }
+        
+        let mqttClient = null;
+        
+        function connectMQTT() {
+            try {
+                log('🔗 Connexion MQTT à broker.hivemq.com...');
+                
+                mqttClient = mqtt.connect('wss://broker.hivemq.com:8884/mqtt', {
+                    clientId: 'debug-' + Math.random().toString(16).substr(2, 8),
+                    clean: true,
+                    connectTimeout: 10000,
+                    keepalive: 60
+                });
+                
+                mqttClient.on('connect', function() {
+                    log('✅ MQTT connecté !');
+                    updateStatus('✅ MQTT CONNECTÉ', 'success');
+                    
+                    mqttClient.subscribe('esp32/relay/status', function(err) {
+                        if (err) {
+                            log('❌ Erreur abonnement: ' + err);
+                        } else {
+                            log('✅ Abonné au topic esp32/relay/status');
+                        }
+                    });
+                });
+                
+                mqttClient.on('message', function(topic, message) {
+                    log(`📨 Reçu sur ${topic}: ${message.toString().substring(0, 100)}...`);
+                    
+                    try {
+                        const data = JSON.parse(message.toString());
+                        log(`📊 Channels: ${data.channels ? data.channels.length : 'undefined'}`);
+                        log(`🕐 Uptime: ${data.uptime || 'undefined'}s`);
+                    } catch (e) {
+                        log('❌ Erreur parsing JSON: ' + e.message);
+                    }
+                });
+                
+                mqttClient.on('error', function(error) {
+                    log('❌ MQTT Error: ' + error.message);
+                    updateStatus('❌ MQTT ERREUR', 'error');
+                });
+                
+                mqttClient.on('offline', function() {
+                    log('📴 MQTT offline');
+                    updateStatus('📴 MQTT OFFLINE', 'warning');
+                });
+                
+            } catch (error) {
+                log('❌ Exception MQTT: ' + error.message);
+                updateStatus('❌ MQTT EXCEPTION', 'error');
+            }
+        }
+        
+        function sendTestCommand() {
+            if (!mqttClient || !mqttClient.connected) {
+                log('❌ MQTT pas connecté');
+                updateStatus('❌ PAS CONNECTÉ', 'error');
+                return;
+            }
+            
+            const command = {channel: 1, state: 'ON'};
+            log('📤 Envoi commande test: ' + JSON.stringify(command));
+            
+            mqttClient.publish('esp32/relay/command', JSON.stringify(command), function(err) {
+                if (err) {
+                    log('❌ Erreur envoi: ' + err);
+                } else {
+                    log('✅ Commande envoyée');
+                }
+            });
+        }
+        
+        // Auto-start
+        log('🚀 Démarrage du diagnostic...');
+        updateStatus('🔄 Prêt pour les tests', 'warning');
+    </script>
+</body>
+</html>

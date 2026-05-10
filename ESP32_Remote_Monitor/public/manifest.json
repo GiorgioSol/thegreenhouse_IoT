@@ -1,0 +1,25 @@
+{
+  "name": "The Green House Controller",
+  "short_name": "Green House",
+  "description": "Contrôle avancé des relais ESP32, compteur électrique et programmation",
+  "start_url": "./app-pro.html",
+  "display": "standalone",
+  "background_color": "#1a202c",
+  "theme_color": "#48bb78",
+  "orientation": "portrait",
+  "scope": "./",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%2348bb78'/%3E%3Ctext x='50' y='60' text-anchor='middle' fill='white' font-size='30'%3E🌱%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%2348bb78'/%3E%3Ctext x='50' y='60' text-anchor='middle' fill='white' font-size='30'%3E🌱%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

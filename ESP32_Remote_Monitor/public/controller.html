@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Green House Controller</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#48bb78">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Green House">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #1a202c, #2d3748);
+            color: white;
+            padding: 10px;
+            margin: 0;
+            min-height: 100vh;
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 2px solid #48bb78;
+            margin-bottom: 20px;
+        }
+        .header h1 { 
+            color: #48bb78; 
+            margin: 0;
+            font-size: 24px;
+        }
+        .status {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        .relay-card {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 15px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .relay-card.on {
+            border-color: #48bb78;
+            background: rgba(72, 187, 120, 0.2);
+        }
+        .relay-card.off {
+            border-color: #666;
+            background: rgba(255,255,255,0.05);
+        }
+        .relay-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .relay-name {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .relay-status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .relay-status.on {
+            background: #48bb78;
+            color: white;
+        }
+        .relay-status.off {
+            background: #666;
+            color: white;
+        }
+        .toggle-button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .toggle-button.on {
+            background: #48bb78;
+            color: white;
+        }
+        .toggle-button.off {
+            background: #666;
+            color: white;
+        }
+        .toggle-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .install-prompt {
+            background: rgba(72, 187, 120, 0.2);
+            border: 2px solid #48bb78;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .install-button {
+            background: #48bb78;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin: 10px;
+        }
+        .mqtt-status {
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        .mqtt-connected {
+            background: #48bb78;
+            color: white;
+        }
+        .mqtt-disconnected {
+            background: #e53e3e;
+            color: white;
+        }
+        .mqtt-connecting {
+            background: #ffd700;
+            color: black;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌱 Green House Controller</h1>
+        <div class="mqtt-status" id="mqttStatus">Connexion...</div>
+    </div>
+
+    <div class="status" id="connectionStatus">
+        ⚡ Initialisation...
+    </div>
+
+    <!-- Relais individuels -->
+    <div class="relay-card off" id="relay0">
+        <div class="relay-header">
+            <span class="relay-name">💡 Lampe 1</span>
+            <span class="relay-status off">ÉTEINT</span>
+        </div>
+        <button class="toggle-button off" onclick="toggleRelay(0)">
+            ALLUMER
+        </button>
+    </div>
+
+    <div class="relay-card off" id="relay1">
+        <div class="relay-header">
+            <span class="relay-name">⚡ Relais 2</span>
+            <span class="relay-status off">ÉTEINT</span>
+        </div>
+        <button class="toggle-button off" onclick="toggleRelay(1)">
+            ALLUMER
+        </button>
+    </div>
+
+    <div class="relay-card off" id="relay2">
+        <div class="relay-header">
+            <span class="relay-name">💡 Lampe 2</span>
+            <span class="relay-status off">ÉTEINT</span>
+        </div>
+        <button class="toggle-button off" onclick="toggleRelay(2)">
+            ALLUMER
+        </button>
+    </div>
+
+    <div class="relay-card off" id="relay3">
+        <div class="relay-header">
+            <span class="relay-name">⚡ Relais 4</span>
+            <span class="relay-status off">ÉTEINT</span>
+        </div>
+        <button class="toggle-button off" onclick="toggleRelay(3)">
+            ALLUMER
+        </button>
+    </div>
+
+    <div class="relay-card off" id="relay4">
+        <div class="relay-header">
+            <span class="relay-name">🌡️ Climat</span>
+            <span class="relay-status off">ÉTEINT</span>
+        </div>
+        <button class="toggle-button off" onclick="toggleRelay(4)">
+            ALLUMER
+        </button>
+    </div>
+
+    <div class="relay-card off" id="relay5">
+        <div class="relay-header">
+            <span class="relay-name">⚡ Relais 6</span>
+            <span class="relay-status off">ÉTEINT</span>
+        </div>
+        <button class="toggle-button off" onclick="toggleRelay(5)">
+            ALLUMER
+        </button>
+    </div>
+
+    <!-- Prompt d'installation PWA -->
+    <div class="install-prompt" id="installPrompt" style="display: none;">
+        <h3>📱 Installer l'application</h3>
+        <p>Ajoutez Green House à votre écran d'accueil pour un accès rapide</p>
+        <button class="install-button" onclick="installPWA()">
+            📲 INSTALLER
+        </button>
+    </div>
+
+    <!-- Inclusion MQTT.js depuis CDN -->
+    <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
+    
+    <script>
+        // Variables globales
+        let mqttClient = null;
+        let relayStates = [false, false, false, false, false, false];
+        let deferredPrompt;
+        
+        // Noms des relais
+        const relayNames = ["💡 Lampe 1", "⚡ Relais 2", "💡 Lampe 2", "⚡ Relais 4", "🌡️ Climat", "⚡ Relais 6"];
+        
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            updateConnectionStatus('🔄 Connexion MQTT...');
+            connectMQTT();
+            setupPWA();
+        });
+        
+        // Connexion MQTT
+        function connectMQTT() {
+            try {
+                updateMqttStatus('connecting', 'Connexion...');
+                
+                // Configuration MQTT
+                const options = {
+                    port: 8884,
+                    protocol: 'wss',
+                    keepalive: 60,
+                    reconnectPeriod: 1000,
+                    connectTimeout: 30000,
+                    will: {
+                        topic: 'esp32/status',
+                        payload: 'offline',
+                        qos: 0,
+                        retain: false
+                    }
+                };
+                
+                mqttClient = mqtt.connect('wss://broker.hivemq.com:8884/mqtt', options);
+                
+                mqttClient.on('connect', function() {
+                    console.log('MQTT connecté');
+                    updateMqttStatus('connected', '✅ Connecté');
+                    updateConnectionStatus('✅ Connecté au système');
+                    
+                    // S'abonner aux topics
+                    mqttClient.subscribe('esp32/relay/status', function(err) {
+                        if (!err) {
+                            console.log('Abonné à esp32/relay/status');
+                            // Demander l'état actuel
+                            mqttClient.publish('esp32/relay/request', 'status');
+                        }
+                    });
+                });
+                
+                mqttClient.on('message', function(topic, message) {
+                    if (topic === 'esp32/relay/status') {
+                        try {
+                            const data = JSON.parse(message.toString());
+                            console.log('État reçu:', data);
+                            updateRelayStatesFromESP32(data);
+                        } catch (e) {
+                            console.error('Erreur parsing message:', e);
+                        }
+                    }
+                });
+                
+                mqttClient.on('error', function(error) {
+                    console.error('Erreur MQTT:', error);
+                    updateMqttStatus('disconnected', '❌ Erreur');
+                    updateConnectionStatus('❌ Erreur de connexion');
+                });
+                
+                mqttClient.on('close', function() {
+                    console.log('MQTT déconnecté');
+                    updateMqttStatus('disconnected', '❌ Déconnecté');
+                    updateConnectionStatus('❌ Déconnecté - Reconnexion...');
+                });
+                
+            } catch (error) {
+                console.error('Erreur connexion MQTT:', error);
+                updateMqttStatus('disconnected', '❌ Erreur');
+                updateConnectionStatus('❌ Impossible de se connecter');
+            }
+        }
+        
+        // Mettre à jour le statut MQTT
+        function updateMqttStatus(status, text) {
+            const statusElement = document.getElementById('mqttStatus');
+            statusElement.className = 'mqtt-status mqtt-' + status;
+            statusElement.textContent = text;
+        }
+        
+        // Mettre à jour le statut de connexion
+        function updateConnectionStatus(message) {
+            document.getElementById('connectionStatus').innerHTML = message;
+        }
+        
+        // Contrôler un relais
+        function toggleRelay(channel) {
+            if (!mqttClient || !mqttClient.connected) {
+                alert('❌ Pas de connexion MQTT');
+                return;
+            }
+            
+            const newState = relayStates[channel] ? 0 : 2;
+            const command = {
+                channel: channel,
+                state: newState
+            };
+            
+            console.log('Envoi commande:', command);
+            mqttClient.publish('esp32/relay/command', JSON.stringify(command));
+            
+            // Mise à jour immédiate de l'interface (confirmation plus tard)
+            relayStates[channel] = (newState === 2);
+            updateRelayUI(channel);
+        }
+        
+        // Mettre à jour l'interface d'un relais
+        function updateRelayUI(channel) {
+            const relayCard = document.getElementById('relay' + channel);
+            const button = relayCard.querySelector('.toggle-button');
+            const statusSpan = relayCard.querySelector('.relay-status');
+            const isOn = relayStates[channel];
+            
+            if (isOn) {
+                relayCard.className = 'relay-card on';
+                button.className = 'toggle-button on';
+                button.textContent = 'ÉTEINDRE';
+                statusSpan.className = 'relay-status on';
+                statusSpan.textContent = 'ALLUMÉ';
+            } else {
+                relayCard.className = 'relay-card off';
+                button.className = 'toggle-button off';
+                button.textContent = 'ALLUMER';
+                statusSpan.className = 'relay-status off';
+                statusSpan.textContent = 'ÉTEINT';
+            }
+        }
+        
+        // Mettre à jour les états depuis l'ESP32
+        function updateRelayStatesFromESP32(data) {
+            if (data.channels && Array.isArray(data.channels)) {
+                for (let i = 0; i < data.channels.length && i < 6; i++) {
+                    if (data.channels[i] && typeof data.channels[i].active === 'boolean') {
+                        relayStates[i] = data.channels[i].active;
+                        updateRelayUI(i);
+                    }
+                }
+                updateConnectionStatus('✅ États synchronisés');
+            }
+        }
+        
+        // Configuration PWA
+        function setupPWA() {
+            // Event pour l'installation
+            window.addEventListener('beforeinstallprompt', function(e) {
+                console.log('PWA installable');
+                e.preventDefault();
+                deferredPrompt = e;
+                document.getElementById('installPrompt').style.display = 'block';
+            });
+            
+            // Si déjà installé
+            if (window.matchMedia('(display-mode: standalone)').matches) {
+                console.log('PWA déjà installée');
+                updateConnectionStatus('📱 Application installée');
+            }
+        }
+        
+        // Installer la PWA
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(function(choiceResult) {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('PWA installée');
+                        document.getElementById('installPrompt').style.display = 'none';
+                    }
+                    deferredPrompt = null;
+                });
+            } else {
+                // Instructions manuelles pour iOS
+                alert('📱 Pour installer sur iOS:\n\n1. Appuyez sur le bouton Partager 📤\n2. Sélectionnez "Ajouter à l\'écran d\'accueil"\n3. Appuyez sur "Ajouter"');
+            }
+        }
+        
+        // Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(function(registration) {
+                    console.log('Service Worker enregistré');
+                })
+                .catch(function(error) {
+                    console.log('Erreur Service Worker:', error);
+                });
+        }
+    </script>
+</body>
+</html>

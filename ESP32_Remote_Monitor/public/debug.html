@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug PWA - Green House</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="GreenHouse">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1a202c;
+            color: white;
+        }
+        .debug-panel {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background: #48bb78;
+            color: white;
+            cursor: pointer;
+        }
+        .log {
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Debug PWA - Green House</h1>
+    
+    <div class="debug-panel">
+        <h3>📱 PWA Installation</h3>
+        <p>iOS: <span id="ios-detection">❓</span></p>
+        <p>Standalone: <span id="standalone-detection">❓</span></p>
+        <p>BeforeInstallPrompt: <span id="install-prompt">❓</span></p>
+        <button id="test-install">Tester Installation</button>
+        <button onclick="window.location.reload()">Recharger</button>
+    </div>
+    
+    <div class="debug-panel">
+        <h3>🌐 MQTT Test</h3>
+        <p>Connexion: <span id="mqtt-status">❌ Non connecté</span></p>
+        <button onclick="testMQTT()">Connecter MQTT</button>
+        <button onclick="testRelay(0)">Test Relais 1 (CH0)</button>
+        <button onclick="testMeterRequest()">Test Compteur</button>
+    </div>
+    
+    <div class="debug-panel">
+        <h3>📊 Logs</h3>
+        <div id="log" class="log"></div>
+        <button onclick="clearLog()">Vider logs</button>
+    </div>
+
+    <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
+    <script>
+        let mqttClient = null;
+        let deferredPrompt;
+        
+        function log(message) {
+            const now = new Date().toLocaleTimeString();
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML += `[${now}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        // Détection PWA
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                           ('standalone' in window.navigator && window.navigator.standalone);
+        
+        document.getElementById('ios-detection').textContent = isIOS ? '✅ iOS' : '❌ Pas iOS';
+        document.getElementById('standalone-detection').textContent = isStandalone ? '✅ Standalone' : '❌ Navigateur';
+        
+        // Installation PWA
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('install-prompt').textContent = '✅ Disponible';
+            log('🎯 beforeinstallprompt détecté');
+        });
+        
+        document.getElementById('test-install').addEventListener('click', async () => {
+            if (isIOS) {
+                alert('📱 iOS: Safari → Partager → Ajouter à l\\'écran d\\'accueil');
+                log('📱 Instructions iOS affichées');
+            } else if (deferredPrompt) {
+                try {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    log(`🎯 Installation: ${outcome}`);
+                    deferredPrompt = null;
+                } catch (error) {
+                    log(`❌ Erreur installation: ${error.message}`);
+                }
+            } else {
+                alert('Installation manuelle: Menu → Installer l\\'application');
+                log('📝 Instructions manuelles affichées');
+            }
+        });
+        
+        // MQTT Test
+        function testMQTT() {
+            log('🌐 Connexion MQTT...');
+            
+            const options = {
+                hostname: 'broker.hivemq.com',
+                port: 8884,
+                protocol: 'wss',
+                clean: true,
+                connectTimeout: 5000,
+                reconnectPeriod: 1000,
+            };
+            
+            mqttClient = mqtt.connect(`wss://${options.hostname}:${options.port}`, options);
+            
+            mqttClient.on('connect', () => {
+                log('✅ MQTT connecté');
+                document.getElementById('mqtt-status').textContent = '✅ Connecté';
+                
+                // S'abonner aux topics
+                mqttClient.subscribe('esp32/relay/status', { qos: 1 });
+                mqttClient.subscribe('esp32/meter/data', { qos: 1 });
+                log('📡 Abonnements MQTT activés');
+            });
+            
+            mqttClient.on('error', (error) => {
+                log(`❌ Erreur MQTT: ${error.message}`);
+                document.getElementById('mqtt-status').textContent = '❌ Erreur';
+            });
+            
+            mqttClient.on('message', (topic, message) => {
+                try {
+                    const data = JSON.parse(message.toString());
+                    log(`📨 [${topic}]: ${JSON.stringify(data, null, 2)}`);
+                } catch (error) {
+                    log(`📨 [${topic}]: ${message.toString()}`);
+                }
+            });
+        }
+        
+        function testRelay(channel) {
+            if (!mqttClient || !mqttClient.connected) {
+                log('❌ MQTT non connecté');
+                return;
+            }
+            
+            const command = {
+                channel: channel,     // 0-5 pour ESP32
+                state: 2,            // 2 = ON forcé
+                timestamp: Date.now()
+            };
+            
+            log(`🔧 Commande relais CH${channel+1}: ${JSON.stringify(command)}`);
+            mqttClient.publish('esp32/relay/command', JSON.stringify(command));
+        }
+        
+        function testMeterRequest() {
+            if (!mqttClient || !mqttClient.connected) {
+                log('❌ MQTT non connecté');
+                return;
+            }
+            
+            const request = {
+                action: 'read_meter',
+                timestamp: Date.now()
+            };
+            
+            log(`⚡ Demande compteur: ${JSON.stringify(request)}`);
+            mqttClient.publish('esp32/meter/request', JSON.stringify(request));
+        }
+        
+        // Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => {
+                    log('✅ Service Worker enregistré');
+                })
+                .catch(err => {
+                    log(`❌ Erreur Service Worker: ${err.message}`);
+                });
+        }
+        
+        log('🚀 Debug PWA initialisé');
+    </script>
+</body>
+</html>

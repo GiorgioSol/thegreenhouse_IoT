@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Ultra Simple</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #000;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+        }
+        button {
+            background: #ff0000;
+            color: white;
+            border: none;
+            padding: 20px;
+            font-size: 18px;
+            width: 100%;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        .result {
+            background: #333;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border: 2px solid #00ff00;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Test Ultra Simple</h1>
+    
+    <div class="result">
+        <h3>📱 Test 1: JavaScript de base</h3>
+        <button onclick="test1()">TEST 1: Alert Simple</button>
+        <div id="result1">Pas testé</div>
+    </div>
+    
+    <div class="result">
+        <h3>🌐 Test 2: Modification DOM</h3>
+        <button onclick="test2()">TEST 2: Changer Texte</button>
+        <div id="result2">Texte original</div>
+    </div>
+    
+    <div class="result">
+        <h3>⚡ Test 3: Date/Heure</h3>
+        <button onclick="test3()">TEST 3: Afficher Date</button>
+        <div id="result3">Pas testé</div>
+    </div>
+    
+    <div class="result">
+        <h3>🔍 Test 4: Détection Safari</h3>
+        <button onclick="test4()">TEST 4: Info Navigateur</button>
+        <div id="result4">Pas testé</div>
+    </div>
+
+    <script>
+        // Test 1: Alert basique
+        function test1() {
+            alert("JavaScript fonctionne !");
+            document.getElementById('result1').innerHTML = "✅ Alert affiché !";
+        }
+        
+        // Test 2: Modification DOM simple
+        function test2() {
+            document.getElementById('result2').innerHTML = "✅ JavaScript peut modifier le DOM !";
+            document.getElementById('result2').style.color = "#00ff00";
+        }
+        
+        // Test 3: Date et heure
+        function test3() {
+            var maintenant = new Date();
+            var temps = maintenant.getHours() + ":" + maintenant.getMinutes() + ":" + maintenant.getSeconds();
+            document.getElementById('result3').innerHTML = "✅ Heure: " + temps;
+        }
+        
+        // Test 4: Info navigateur
+        function test4() {
+            var info = "";
+            info += "Navigateur: " + navigator.userAgent.substring(0, 50) + "...<br>";
+            info += "Largeur: " + window.screen.width + "px<br>";
+            info += "Hauteur: " + window.screen.height + "px<br>";
+            
+            // Test spécifique Safari iOS
+            var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            info += "iOS détecté: " + (isIOS ? "OUI" : "NON") + "<br>";
+            
+            document.getElementById('result4').innerHTML = info;
+        }
+        
+        // Test automatique au chargement (très simple)
+        setTimeout(function() {
+            document.body.style.borderTop = "5px solid #00ff00";
+            console.log("JavaScript chargé et exécuté");
+        }, 1000);
+    </script>
+</body>
+</html>
